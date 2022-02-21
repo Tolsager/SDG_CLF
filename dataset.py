@@ -15,13 +15,14 @@ class DS(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
-        tweet = self.df.iloc[idx, 2]
+        tweet = self.df.iloc[idx, 2].lower()
         labels = self.df.iloc[idx, 4:-2]
         type = self.df.iloc[idx, -2]
         num_labels = self.df.iloc[idx, -1]
 
-        prog = re.compile(r'#\S+')
-        tweet = prog.sub('', tweet)[0]
+        prog = re.compile(r'#(sdg)s?(\s+)?(\d+)?')
+        # prog = re.complite(r'#\S+')
+        tweet = prog.subn('', tweet)[0]
         tweet = ' '.join(tweet.split())
 
         encoding = self.tokenizer.encode_plus(tweet, padding='max_length', max_length=252, return_tensors='pt', truncation=True)

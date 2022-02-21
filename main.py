@@ -10,12 +10,15 @@ from sklearn.model_selection import train_test_split
 from trainer import Trainer
 from model import get_model
 
-csv_path = ''
+csv_path = './data/allSDGtweets.csv'
 
 
-def main(batch_size=4, csv_path=csv_path, epochs=2):
-    df = pd.read_csv(csv_path)
-    df_train, df_test = train_test_split(df, stratify=df['label'])
+def main(batch_size=16, csv_path=csv_path, epochs=2):
+    df = pd.read_csv(csv_path, encoding='latin1')
+    df = df[df['nclasses'] == 1]
+    df = df.sample(frac=1)
+    df = df.sample(frac=0.02)
+    df_train, df_test = train_test_split(df, train_size=0.8)
 
     tokenizer = AutoTokenizer.from_pretrained('roberta-base')
     ds_train = DS(df_train, tokenizer)

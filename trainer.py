@@ -19,30 +19,35 @@ class Trainer:
         self.criterion = criterion
 
     def train_step(self, batch):
-        tokens, label = batch
-        out = self.model(tokens)
+        tokens = batch['input_ids']
+        attention_mask = batch['attention_mask']
+        label = batch['labels']
+        out = self.model(tokens, attention_mask)['logits']
         loss = self.criterion(out, label)
-        n_correct = torch.sum(torch.argmax(out, dim=1) == label)
+        n_correct = torch.sum(torch.argmax(out, dim=1) == torch.argmax(label, dim=1))
         return {'loss': loss, 'n_correct': n_correct}
 
     def validation_step(self, batch):
-        tokens, label = batch
-        out = self.model(tokens)
+        tokens = batch['input_ids']
+        attention_mask = batch['attention_mask']
+        label = batch['labels']
+        out = self.model(tokens, attention_mask)['logits']
         loss = self.criterion(out, label)
-        n_correct = torch.sum(torch.argmax(out, dim=1) == label)
+        n_correct = torch.sum(torch.argmax(out, dim=1) == torch.argmax(label, dim=1))
         return {'loss': loss, 'n_correct': n_correct}
 
     def train(self, train_dataloader=None, val_dataloader=None):
         # validation check
+        best_acc = 0
         print("Validation check")
         self.model.eval()
         val_dataloader_iterator = iter(val_dataloader)
         n_samples = 0
         val_step_outputs = []
-        for i in trange(2):
+        for _ in trange(2):
             with torch.no_grad():
                 batch = next(val_dataloader_iterator)
-                n_samples += batch[batch.keys()[0]].shape[0]
+                n_samples += list(batch.values())[0].shape[0]
                 batch = self.move_to(batch)
                 val_step_out = self.validation_step(batch)
                 val_step_out = self.detach_outputs(val_step_out)
@@ -59,7 +64,7 @@ class Trainer:
             n_samples = 0
             train_step_outputs = []
             for batch in tqdm(train_dataloader):
-                n_samples += batch[batch.keys()[0]].shape[0]
+                n_samples += list(batch.values())[0].shape[0]
                 batch = self.move_to(batch)
                 train_step_out = self.train_step(batch)
                 self.step_optimizer(train_step_out)
@@ -76,7 +81,7 @@ class Trainer:
             val_step_outputs = []
             with torch.no_grad():
                 for batch in tqdm(train_dataloader):
-                    n_samples += batch[batch.keys()[0]].shape[0]
+                    n_samples += list(batch.values())[0].shape[0]
                     batch = self.move_to(batch)
                     val_step_out = self.validation_step(batch)
                     val_step_out = self.detach_outputs(val_step_out)
@@ -85,6 +90,10 @@ class Trainer:
                 avg_outputs = self.avg_outputs(val_step_outputs, n_samples)
                 val_loss = avg_outputs['loss']
                 val_accuracy = avg_outputs.get('n_correct')
+                if val_accuracy > best_acc:
+                    best_acc = val_accuracy
+                    torch.save(self.model.state_dict(), "best.pt")
+
 
             print(f"Epoch {epoch}:")
             print(f"    Train loss: {train_loss}")
@@ -125,7 +134,8 @@ class Trainer:
                 res.append(self.move_to(v))
             return res
         else:
-            raise TypeError("Invalid type for move_to")
+            return obj
+            # raise TypeError("Invalid type for move_to")
 
     @staticmethod
     def seed_everything(seed_value):

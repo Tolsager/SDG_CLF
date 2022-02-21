@@ -4,6 +4,7 @@ from transformers import RobertaForSequenceClassification, AutoTokenizer
 from torch.utils.data import Dataset, DataLoader
 import os
 
+
 class DS(Dataset):
     def __init__(self, df, tokenizer):
         self.df = df
@@ -23,15 +24,16 @@ class DS(Dataset):
         ids = torch.squeeze(encoding['input_ids'])
         mask = torch.squeeze(encoding['attention_mask'])
 
-        return {'input_ids': ids.long(), 'attention_mask': mask.int(), 'labels': torch.tensor(labels), "num_labels": num_labels, 'type': type}
+        return {'input_ids': ids.long(), 'attention_mask': mask.int(), 'labels': torch.tensor(labels, dtype=torch.float32), "num_labels": num_labels, 'type': type}
 
 if __name__ == '__main__':
     if not os.path.exists(os.getcwd() + '\pretrained'):
         os.mkdir(os.getcwd() + '\pretrained')
     tokenizer = AutoTokenizer.from_pretrained('roberta-base')
     tokenizer.save_pretrained('./pretrained/')
-    testing = DS(pd.read_csv('allSDGtweets.csv', encoding='latin1'), tokenizer)
+    testing = DS(pd.read_csv('data/allSDGtweets.csv', encoding='latin1'), tokenizer)
     testing_dl = DataLoader(testing, batch_size=10)
 
     for batch in testing_dl:
         print(batch)
+        assert False

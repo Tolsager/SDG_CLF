@@ -42,7 +42,7 @@ class Trainer:
         for i in trange(2):
             with torch.no_grad():
                 batch = next(val_dataloader_iterator)
-                n_samples += batch[0].shape[0]
+                n_samples += batch[batch.keys()[0]].shape[0]
                 batch = self.move_to(batch)
                 val_step_out = self.validation_step(batch)
                 val_step_out = self.detach_outputs(val_step_out)
@@ -59,7 +59,7 @@ class Trainer:
             n_samples = 0
             train_step_outputs = []
             for batch in tqdm(train_dataloader):
-                n_samples += batch[0].shape[0]
+                n_samples += batch[batch.keys()[0]].shape[0]
                 batch = self.move_to(batch)
                 train_step_out = self.train_step(batch)
                 self.step_optimizer(train_step_out)
@@ -76,7 +76,7 @@ class Trainer:
             val_step_outputs = []
             with torch.no_grad():
                 for batch in tqdm(train_dataloader):
-                    n_samples += batch[0].shape[0]
+                    n_samples += batch[batch.keys()[0]].shape[0]
                     batch = self.move_to(batch)
                     val_step_out = self.validation_step(batch)
                     val_step_out = self.detach_outputs(val_step_out)

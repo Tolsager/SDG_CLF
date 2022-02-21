@@ -1,0 +1,36 @@
+import pandas as pd
+import torch
+
+from torch.utils.data import DataLoader
+from transformers import AutoTokenizer
+from dataset import DS
+from sklearn.model_selection import train_test_split
+
+# our scripts
+from trainer import Trainer
+from model import get_model
+
+csv_path = ''
+
+
+def main(batch_size=4, csv_path=csv_path, epochs=2):
+    df = pd.read_csv(csv_path)
+    df_train, df_test = train_test_split(df, stratify=df['label'])
+
+    tokenizer = AutoTokenizer.from_pretrained('roberta-base')
+    ds_train = DS(df_train, tokenizer)
+    ds_test = DS(df_test, tokenizer)
+
+    dl_train = DataLoader(ds_train, batch_size=batch_size)
+    dl_test = DataLoader(ds_test, batch_size=batch_size)
+
+    model = get_model()
+    optimizer = torch.optim.AdamW
+
+    criterion = torch.nn.CrossEntropyLoss()
+
+    trainer = Trainer(model, optimizer=optimizer, lr=3e-5, epochs=epochs, criterion=criterion)
+    trainer.train(dl_train, dl_test)
+
+
+main()

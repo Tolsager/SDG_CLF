@@ -1,8 +1,9 @@
 import torch
 import pandas as pd
-from transformers import RobertaForSequenceClassification, AutoTokenizer
+from transformers import AutoTokenizer
 from torch.utils.data import Dataset, DataLoader
 import os
+import re
 
 
 class DS(Dataset):
@@ -19,12 +20,17 @@ class DS(Dataset):
         type = self.df.iloc[idx, -2]
         num_labels = self.df.iloc[idx, -1]
 
+        prog = re.compile(r'#\S+')
+        tweet = prog.sub('', tweet)[0]
+        tweet = ' '.join(tweet.split())
+
         encoding = self.tokenizer.encode_plus(tweet, padding='max_length', max_length=252, return_tensors='pt', truncation=True)
 
         ids = torch.squeeze(encoding['input_ids'])
         mask = torch.squeeze(encoding['attention_mask'])
 
         return {'input_ids': ids.long(), 'attention_mask': mask.int(), 'labels': torch.tensor(labels, dtype=torch.float32), "num_labels": num_labels, 'type': type}
+
 
 if __name__ == '__main__':
     if not os.path.exists(os.getcwd() + '\pretrained'):

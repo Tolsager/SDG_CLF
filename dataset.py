@@ -8,10 +8,11 @@ import re
 
 
 class DS(Dataset):
-    def __init__(self, df: pd.DataFrame, tokenizer: transformers.PreTrainedTokenizer):
+    def __init__(self, df: pd.DataFrame, tokenizer: transformers.PreTrainedTokenizer, multi_class: bool = False):
         self.df = df
+        self.multi_class = multi_class
         self.tokenizer = tokenizer
-        self.sdgs = [f'#sdg{i}' for i in range(1, 17)]
+        self.sdgs = [f'#sdg{i}' for i in range(1, 18)]
         self.sdg_prog = re.compile(r'#(sdg)s?(\s+)?(\d+)?')
 
     def __len__(self):
@@ -24,8 +25,11 @@ class DS(Dataset):
 
         tweet = self.sdg_prog.subn('', tweet)[0]
         tweet = ' '.join(tweet.split())
-
-        labels = torch.tensor(labels, dtype=torch.uint8).argmax(dim=0)
+    
+        if not self.multi_class:
+            labels = torch.tensor(labels, dtype=torch.uint8).argmax(dim=0)
+        else:
+            labels = torch.tensor(labels, dtype=torch.float32)
 
         encoding = self.tokenizer(tweet, padding='max_length', max_length=252, return_tensors='pt', truncation=True)
 

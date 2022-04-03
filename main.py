@@ -12,7 +12,9 @@ from trainer import SDGTrainer
 from model import get_model
 
 
-def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: int=2, multi_class: bool = False):
+def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: int=2, multi_class: bool = False, call_tqdm: bool = True):
+    os.chdir(os.path.dirname(__file__))
+    print(os.getcwd())
     df = pd.read_csv(csv_path, encoding='latin1')
     df = df[df['lang'] == 'en']
     if not multi_class:
@@ -33,9 +35,9 @@ def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: 
     else:
         tokenizer = AutoTokenizer.from_pretrained('tokenizers/roberta_base')
 
-    ds_train = DS(df_train, tokenizer)
-    ds_cv = DS(df_cv, tokenizer)
-    ds_test = DS(df_test, tokenizer)
+    ds_train = DS(df_train, tokenizer, multi_class = multi_class)
+    ds_cv = DS(df_cv, tokenizer, multi_class = multi_class)
+    ds_test = DS(df_test, tokenizer, multi_class = multi_class)
 
     dl_train = DataLoader(ds_train, batch_size=batch_size)
     dl_cv = DataLoader(ds_cv, batch_size=batch_size)
@@ -53,10 +55,10 @@ def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: 
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
-    trainer = SDGTrainer(model, epochs=epochs, criterion=criterion)
+    trainer = SDGTrainer(model, epochs=epochs, criterion=criterion, call_tqdm=call_tqdm, multi_class = multi_class)
     trainer.train(dl_train, dl_cv)
     trainer.test(dl_test)
 
 
 if __name__ == '__main__':
-    main(batch_size=20, epochs=10)
+    main(batch_size=20, epochs=10, multi_class=True, call_tqdm=False)

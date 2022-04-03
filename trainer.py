@@ -14,7 +14,7 @@ class Trainer:
     def __init__(self, model=None, optimizer: Callable=None,
                  epochs: int = None, seed: int=0, criterion: Callable=None,
                  save_filename: str = 'best_model', gpu_index: int = None,
-                 save_model=False):
+                 save_model: bool = False, call_tqdm: bool = True, multi_class: bool = False):
         """
         save_filename : str
             name of file without extension. Unique id will be added
@@ -30,6 +30,9 @@ class Trainer:
         self.epochs = epochs
         self.save_filename = save_filename
         self.criterion=criterion
+        self.save_model = save_model
+        self.call_tqdm = call_tqdm
+        self.multi_class = multi_class
 
     def train_step(self, batch):
         """
@@ -79,7 +82,7 @@ class Trainer:
             # training
             n_samples = 0
             train_step_outputs = []
-            for batch in tqdm(train_dataloader):
+            for batch in tqdm(train_dataloader, disable = not self.call_tqdm):
                 n_samples += self.get_batch_size(batch)
                 batch = self.move_to(batch)
                 train_step_out = self.train_step(batch)
@@ -96,7 +99,7 @@ class Trainer:
             n_samples = 0
             val_step_outputs = []
             with torch.no_grad():
-                for batch in tqdm(val_dataloader):
+                for batch in tqdm(val_dataloader, disable = not self.call_tqdm):
                     n_samples += self.get_batch_size(batch)
                     batch = self.move_to(batch)
                     val_step_out = self.validation_step(batch)
@@ -124,7 +127,7 @@ class Trainer:
         n_samples = 0
         test_step_outputs = []
         with torch.no_grad():
-            for batch in tqdm(test_dataloader):
+            for batch in tqdm(test_dataloader, disable = not self.call_tqdm):
                 n_samples += self.get_batch_size(batch)
                 batch = self.move_to(batch)
                 test_step_out = self.validation_step(batch)
@@ -220,7 +223,10 @@ class SDGTrainer(Trainer):
         label = batch['labels']
         out = self.model(tokens, attention_mask)['logits']
         loss = self.criterion(out, label)
-        n_correct = torch.sum(torch.argmax(out, dim=1) == label)
+        if self.multi_class:
+            n_correct = torch.sum(out == label)
+        else:
+            n_correct = torch.sum(torch.argmax(out, dim=1) == label)
         return {'loss': loss, 'n_correct': n_correct}
 
     def validation_step(self, batch):
@@ -229,7 +235,10 @@ class SDGTrainer(Trainer):
         label = batch['labels']
         out = self.model(tokens, attention_mask)['logits']
         loss = self.criterion(out, label)
-        n_correct = torch.sum(torch.argmax(out, dim=1) == label)
+        if self.multi_class:
+            n_correct = torch.sum(out == label)
+        else:
+            n_correct = torch.sum(torch.argmax(out, dim=1) == label)
         return {'loss': loss, 'n_correct': n_correct}
 
     def set_optimizer(self, model):

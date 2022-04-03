@@ -13,7 +13,8 @@ from datetime import datetime
 class Trainer:
     def __init__(self, model=None, optimizer: Callable=None,
                  epochs: int = None, seed: int=0, criterion: Callable=None,
-                 save_filename: str = 'best_model', gpu_index: int = None):
+                 save_filename: str = 'best_model', gpu_index: int = None,
+                 save_model=False):
         """
         save_filename : str
             name of file without extension. Unique id will be added
@@ -49,7 +50,6 @@ class Trainer:
         raise NotImplementedError("validation_step must be implemented")
 
     def train(self, train_dataloader=None, val_dataloader=None):
-        
         print(f"Training on device: {self.device}")
         self.seed_everything(self.seed)
         best_acc = 0
@@ -107,7 +107,7 @@ class Trainer:
                 val_loss = avg_outputs['loss']
                 val_accuracy = avg_outputs.get('n_correct')
                 
-            if val_accuracy > best_acc:
+            if val_accuracy > best_acc and self.save_model:
                 torch.save(self.model.state_dict(), self.save_filename + '_' + self.time + '.pt')
                 
             print(f"Epoch {epoch}:")

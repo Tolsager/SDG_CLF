@@ -28,7 +28,7 @@ def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: 
     
     if not os.path.exists('tokenizers/roberta_base'):
         tokenizer = AutoTokenizer.from_pretrained('roberta-base')
-        os.mkdir('tokenizers/roberta_base')
+        os.makedirs('tokenizers/roberta_base')
         tokenizer.save_pretrained('tokenizers/roberta_base')
     else:
         tokenizer = AutoTokenizer.from_pretrained('tokenizers/roberta_base')
@@ -43,16 +43,20 @@ def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: 
 
     if not os.path.exists('pretrained_models/roberta_base'):
         model = get_model()
-        os.mkdir('pretrained_models/roberta_base')
+        os.makedirs('pretrained_models/roberta_base')
         model.save_pretrained('pretrained_models/roberta_base')
     else:
         model = get_model(pretrained_path='pretrained_models/roberta_base')
 
-    criterion = torch.nn.CrossEntropyLoss()
+    if multi_class:
+        criterion = torch.nn.BCEWithLogitsLoss()
+    else:
+        criterion = torch.nn.CrossEntropyLoss()
 
     trainer = SDGTrainer(model, epochs=epochs, criterion=criterion)
     trainer.train(dl_train, dl_cv)
     trainer.test(dl_test)
 
 
-main(batch_size=16, epochs=10)
+if __name__ == '__main__':
+    main(batch_size=20, epochs=10)

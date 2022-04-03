@@ -12,11 +12,14 @@ from trainer import SDGTrainer
 from model import get_model
 
 
-def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: int=2):
+def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: int=2, multi_class: bool = False):
     df = pd.read_csv(csv_path, encoding='latin1')
-    df = df[df['nclasses'] == 1]
+    df = df[df['lang'] == 'en']
+    if not multi_class:
+        df = df[df['nclasses'] == 1]
+    df = df.drop_duplicates('text')
     df = df.sample(frac=1)
-    # df = df.sample(frac=0.02)
+    # df = df.sample(frac=0.001)
     df_train, df_test = train_test_split(df, train_size=0.9)
     df_train, df_cv = train_test_split(df_train, train_size=0.9)
     df_train.reset_index(drop=True, inplace=True)
@@ -49,7 +52,7 @@ def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: 
 
     trainer = SDGTrainer(model, epochs=epochs, criterion=criterion)
     trainer.train(dl_train, dl_cv)
+    trainer.test(dl_test)
 
 
-
-main(batch_size=16)
+main(batch_size=16, epochs=10)

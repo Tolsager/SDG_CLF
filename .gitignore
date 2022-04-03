@@ -132,3 +132,4 @@ dmypy.json
 tokenizers/
 pretrained_models/
 *.csv
+.vscode/

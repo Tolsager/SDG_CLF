@@ -119,21 +119,23 @@ class Trainer:
             if train_accuracy is not None:
                 print(f"    Validation Accuracy: {val_accuracy}")
 
-    # def test(self, dl):
-    #     self.model.eval()
-    #     n_samples = 0
-    #     val_step_outputs = []
-    #     with torch.no_grad():
-    #         for batch in tqdm(train_dataloader):
-    #             n_samples += self.get_batch_size(batch)
-    #             batch = self.move_to(batch)
-    #             val_step_out = self.validation_step(batch)
-    #             val_step_out = self.detach_outputs(val_step_out)
-    #             val_step_outputs.append(val_step_out)
-            
-    #         avg_outputs = self.avg_outputs(val_step_outputs, n_samples)
-    #         val_loss = avg_outputs['loss']
-    #         val_accuracy = avg_outputs.get('n_correct')
+    def test(self, test_dataloader):
+        self.model.eval()
+        n_samples = 0
+        test_step_outputs = []
+        with torch.no_grad():
+            for batch in tqdm(test_dataloader):
+                n_samples += self.get_batch_size(batch)
+                batch = self.move_to(batch)
+                test_step_out = self.validation_step(batch)
+                test_step_out = self.detach_outputs(test_step_out)
+                test_step_outputs.append(test_step_out)
+        
+        avg_outputs = self.avg_outputs(test_step_outputs, n_samples)
+        test_loss = avg_outputs['loss']
+        test_accuracy = avg_outputs.get('n_correct')
+        print(f"Test loss: {test_loss}")
+        print(f"Test accuracy: {test_accuracy}")
 
 
     def set_optimizer(self, model: torch.nn.Module):

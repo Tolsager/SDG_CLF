@@ -1,44 +1,46 @@
 import torch
 import pandas as pd
 from transformers import AutoTokenizer
+import transformers
 from torch.utils.data import Dataset, DataLoader
 import os
 import re
 
 
 class DS(Dataset):
-    def __init__(self, df, tokenizer):
+    def __init__(self, df: pd.DataFrame, tokenizer: transformers.PreTrainedTokenizer):
         self.df = df
         self.tokenizer = tokenizer
+        self.sdgs = [f'#sdg{i}' for i in range(1, 17)]
+        self.sdg_prog = re.compile(r'#(sdg)s?(\s+)?(\d+)?')
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
-        tweet = self.df.iloc[idx, 2].lower()
-        labels = self.df.iloc[idx, 4:-2]
-        type = self.df.iloc[idx, -2]
-        num_labels = self.df.iloc[idx, -1]
+        tweet = self.df.loc[idx, 'text'].lower()
+        labels = self.df.loc[idx, self.sdgs]
+        num_labels = self.df.loc[idx, 'nclasses']
 
-        prog = re.compile(r'#(sdg)s?(\s+)?(\d+)?')
-        # prog = re.complite(r'#\S+')
-        tweet = prog.subn('', tweet)[0]
+        tweet = self.sdg_prog.subn('', tweet)[0]
         tweet = ' '.join(tweet.split())
 
-        encoding = self.tokenizer.encode_plus(tweet, padding='max_length', max_length=252, return_tensors='pt', truncation=True)
+        labels = torch.tensor(labels, dtype=torch.uint8).argmax(dim=0)
+
+        encoding = self.tokenizer(tweet, padding='max_length', max_length=252, return_tensors='pt', truncation=True)
 
         ids = torch.squeeze(encoding['input_ids'])
         mask = torch.squeeze(encoding['attention_mask'])
 
-        return {'input_ids': ids.long(), 'attention_mask': mask.int(), 'labels': torch.tensor(labels, dtype=torch.float32), "num_labels": num_labels, 'type': type}
+        return {'input_ids': ids.long(), 'attention_mask': mask.int(), 'labels': labels, "num_labels": num_labels}
 
 
 if __name__ == '__main__':
-    if not os.path.exists(os.getcwd() + '\pretrained'):
-        os.mkdir(os.getcwd() + '\pretrained')
+    # if not os.path.exists(os.getcwd() + '\pretrained'):
+    #     os.mkdir(os.getcwd() + '\pretrained')
     tokenizer = AutoTokenizer.from_pretrained('roberta-base')
-    tokenizer.save_pretrained('./pretrained/')
-    testing = DS(pd.read_csv('data/allSDGtweets.csv', encoding='latin1'), tokenizer)
+    # tokenizer.save_pretrained('./pretrained/')
+    testing = DS(pd.read_csv('data/raw/allSDGtweets.csv', encoding='latin1'), tokenizer)
     testing_dl = DataLoader(testing, batch_size=10)
 
     for batch in testing_dl:

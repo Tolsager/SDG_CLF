@@ -14,7 +14,7 @@ class Trainer:
     def __init__(self, model=None, optimizer: Callable=None,
                  epochs: int = None, seed: int=0, criterion: Callable=None,
                  save_filename: str = 'best_model', gpu_index: int = None,
-                 save_model: bool = False, call_tqdm: bool = True, multi_class: bool = False):
+                 save_model: bool = False, call_tqdm: bool = True):
         """
         save_filename : str
             name of file without extension. Unique id will be added
@@ -29,10 +29,9 @@ class Trainer:
         self.optimizer = self.set_optimizer(self.model)
         self.epochs = epochs
         self.save_filename = save_filename
-        self.criterion=criterion
+        self.criterion = criterion
         self.save_model = save_model
         self.call_tqdm = call_tqdm
-        self.multi_class = multi_class
 
     def train_step(self, batch):
         """
@@ -214,8 +213,9 @@ class Trainer:
             return Trainer.get_batch_size(list(batch.values())[0])   
 
 class SDGTrainer(Trainer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, multi_class=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.multi_class = multi_class
     
     def train_step(self, batch):
         tokens = batch['input_ids']

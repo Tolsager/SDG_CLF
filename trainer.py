@@ -22,7 +22,7 @@ class Trainer:
         """
         self.seed = seed
         if gpu_index is not None:
-            self.device = torch.cuda.device(gpu_index)
+            self.device = f"cuda:{gpu_index}"
         else:
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
@@ -221,24 +221,30 @@ class SDGTrainer(Trainer):
         tokens = batch['input_ids']
         attention_mask = batch['attention_mask']
         label = batch['labels']
-        out = self.model(tokens, attention_mask)['logits']
-        loss = self.criterion(out, label)
         if self.multi_class:
-            n_correct = torch.sum(out == label)
+            out = self.model(tokens, attention_mask)
+            out_ = torch.sigmoid(out)
+            out_ = out_ > 0.5
+            n_correct = torch.sum(torch.all(out_ == label, dim=1))
         else:
+            out = self.model(tokens, attention_mask)['logits']
             n_correct = torch.sum(torch.argmax(out, dim=1) == label)
+        loss = self.criterion(out, label)
         return {'loss': loss, 'n_correct': n_correct}
 
     def validation_step(self, batch):
         tokens = batch['input_ids']
         attention_mask = batch['attention_mask']
         label = batch['labels']
-        out = self.model(tokens, attention_mask)['logits']
-        loss = self.criterion(out, label)
         if self.multi_class:
-            n_correct = torch.sum(out == label)
+            out = self.model(tokens, attention_mask)
+            out_ = torch.sigmoid(out)
+            out_ = out_ > 0.5
+            n_correct = torch.sum(torch.all(out_ == label, dim=1))
         else:
+            out = self.model(tokens, attention_mask)['logits']
             n_correct = torch.sum(torch.argmax(out, dim=1) == label)
+        loss = self.criterion(out, label)
         return {'loss': loss, 'n_correct': n_correct}
 
     def set_optimizer(self, model):

@@ -14,14 +14,13 @@ from model import get_model
 
 def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: int=2, multi_class: bool = False, call_tqdm: bool = True):
     os.chdir(os.path.dirname(__file__))
-    print(os.getcwd())
     df = pd.read_csv(csv_path, encoding='latin1')
     df = df[df['lang'] == 'en']
     if not multi_class:
         df = df[df['nclasses'] == 1]
     df = df.drop_duplicates('text')
     df = df.sample(frac=1)
-    # df = df.sample(frac=0.001)
+    # df = df.sample(frac=0.01)
     df_train, df_test = train_test_split(df, train_size=0.9)
     df_train, df_cv = train_test_split(df_train, train_size=0.9)
     df_train.reset_index(drop=True, inplace=True)
@@ -48,14 +47,14 @@ def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: 
         os.makedirs('pretrained_models/roberta_base')
         model.save_pretrained('pretrained_models/roberta_base')
     else:
-        model = get_model(pretrained_path='pretrained_models/roberta_base')
+        model = get_model(pretrained_path='pretrained_models/roberta_base', multi_class=multi_class)
 
     if multi_class:
         criterion = torch.nn.BCEWithLogitsLoss()
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
-    trainer = SDGTrainer(model, epochs=epochs, criterion=criterion, call_tqdm=call_tqdm, multi_class = multi_class)
+    trainer = SDGTrainer(multi_class=multi_class, model=model, epochs=epochs, criterion=criterion, call_tqdm=call_tqdm, gpu_index=0)
     trainer.train(dl_train, dl_cv)
     trainer.test(dl_test)
 

@@ -1,13 +1,11 @@
 import torch
 import pandas as pd
-from transformers import AutoTokenizer
 import transformers
-from torch.utils.data import Dataset, DataLoader
 import os
 import re
 import datasets
 
-class DS(Dataset):
+class DS(torch.utils.data.Dataset):
     def __init__(self, df: pd.DataFrame, tokenizer: transformers.PreTrainedTokenizer, multi_class: bool = False):
         self.df = df
         self.multi_class = multi_class
@@ -55,7 +53,16 @@ def remove_with_regex(sample: dict, pattern: re.Pattern = None):
     sample['text'] =  pattern.subn('', sample['text'])[0]
     return sample
 
-def preprocess(sample: dict):
+def preprocess(sample: dict, tokenizer: transformers.PreTrainedTokenizer):
+    """preprocess a sample of the dataset
+
+    Args:
+        sample (dict): dataset sample
+        tokenizer (transformers.PreTrainedTokenizer): a pretrained tokenizer
+
+    Returns:
+        dict: the preprocessed sample
+    """
     sample["text"] = sample['text'].lower()
 
     # remove labels from the tweet
@@ -65,36 +72,51 @@ def preprocess(sample: dict):
     # remove ekstra whitespace
     sample["text"] = " ".join(sample['text'].split())
 
-    
+    # create a label vector
     label = [int(sample[f"#sdg{i}"]) for i in range(1, 18)]
     sample["label"] = label
+
+    # tokenize text
+    encoding = tokenizer(sample['text'], max_length=260, padding="max_length", truncation=True, return_tensors="pt") 
+    sample["input_ids"] = encoding.input_ids
+    sample['attention_mask'] = encoding.attention_mask
     return sample
 
-def load_dataset(file: str="data/raw/allSDGtweets.csv"):
+def load_dataset(file: str="data/raw/allSDGtweets.csv", seed: int = 0):
+    """Loads the tweet CSV into a huggingface dataset and apply the preprocessing
+
+    Args:
+        file (str, optional): path to csv file. Defaults to "data/raw/allSDGtweets.csv".
+        seed (int, optional): seed used for shuffling. Defaults to 0.
+
+    Returns:
+        datasets.Dataset: a preprocessed dataset
+    """
     # load the csv file into a huggingface dataset
     # Set the encodign to latin to be able to read special characters such as ñ
     tweet_dataset = datasets.load_dataset("csv", data_files=file, encoding='latin')
     
     # remove unused columns
     tweet_dataset = tweet_dataset.remove_columns(['Unnamed: 0', 'id', 'created_at', 'category']) 
+    print(f"Length of dataset before removing non-english tweets: {tweet_dataset.num_rows}")
 
-    tweet_dataset = tweet_dataset.map(preprocess, num_proc=6)
-
+    # remove non-english text
+    tweet_dataset = tweet_dataset.filter(lambda sample: sample['lang'] == 'en') 
+    print(f"Length of dataset after removing non-english tweets: {tweet_dataset.num_rows}")
     
+    # apply the preprocessing function to every sample 
+    tokenizer = transformers.AutoTokenizer.from_pretrained('roberta-base')
+    tweet_dataset = tweet_dataset.map(preprocess, num_proc=6, fn_kwargs={"tokenizer": tokenizer})
+
+    # remove redundant columns
+    tweet_dataset = tweet_dataset.remove_columns([f"#sdg{i}" for i in range(1, 18)] + ["lang"])
+    
+    tweet_dataset = tweet_dataset.shuffle(seed=seed)
+
+    tweet_dataset = tweet_dataset["train"].train_test_split(test_size=0.1)
     return tweet_dataset
 
 if __name__ == '__main__':
     tweet_dataset = load_dataset()
     print(tweet_dataset)
     print(tweet_dataset['train'][0])
-
-
-# 10-fold cross-validation (see also next section on rounding behavior):
-# The validation datasets are each going to be 10%:
-# [0%:10%], [10%:20%], ..., [90%:100%].
-# And the training datasets are each going to be the complementary 90%:
-# [10%:100%] (for a corresponding validation set of [0%:10%]),
-# [0%:10%] + [20%:100%] (for a validation set of [10%:20%]), ...,
-# [0%:90%] (for a validation set of [90%:100%]).
-# vals_ds = datasets.load_dataset('bookcorpus', split=[f'train[{k}%:{k+10}%]' for k in range(0, 100, 10)])
-# trains_ds = datasets.load_dataset('bookcorpus', split=[f'train[:{k}%]+train[{k+10}%:]' for k in range(0, 100, 10)])

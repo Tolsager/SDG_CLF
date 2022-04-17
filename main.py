@@ -7,54 +7,115 @@ from transformers import AutoTokenizer
 from tweet_dataset import DS
 from sklearn.model_selection import train_test_split
 import transformers
+from sklearn.model_selection import KFold
+import wandb
+import numpy as np
 
 # our scripts
-import trainer
+from trainer import SDGTrainer
 import tweet_dataset
+from model import get_model
+import torchmetrics
+import utils
 
 
-def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: int=2, multi_class: bool = False, call_tqdm: bool = True):
-    # os.chdir(os.path.dirname(__file__))
-    df = df.drop_duplicates('text')
-    df = df.sample(frac=1)
-    # df = df.sample(frac=0.01)
-    df_train, df_test = train_test_split(df, train_size=0.9)
-    df_train, df_cv = train_test_split(df_train, train_size=0.9)
-    df_train.reset_index(drop=True, inplace=True)
-    df_cv.reset_index(drop=True, inplace=True)
-    df_test.reset_index(drop=True, inplace=True)
-    
-    if not os.path.exists('tokenizers/roberta_base'):
-        tokenizer = AutoTokenizer.from_pretrained('roberta-base')
-        os.makedirs('tokenizers/roberta_base')
-        tokenizer.save_pretrained('tokenizers/roberta_base')
+def main(
+    batch_size: int = 16,
+    csv_path: str = "data/raw/allSDGtweets.csv",
+    epochs: int = 2,
+    multi_class: bool = False,
+    call_tqdm: bool = True,
+    nrows: int = None,
+    folds: int = False,
+    metrics: dict = None,
+    seed: int = 0,
+):
+    utils.seed_everything(seed)
+    ds = tweet_dataset.load_dataset(file=csv_path, nrows=nrows, multi_class=multi_class)
+    ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
+    if not os.path.exists("pretrained_models/roberta_base"):
+        model = transformers.AutoModelForSequenceClassification.from_pretrained(
+            "roberta-base"
+        )
+
+        os.makedirs("pretrained_models/roberta_base")
+        model.save_pretrained("pretrained_models/roberta_base")
     else:
-        tokenizer = AutoTokenizer.from_pretrained('tokenizers/roberta_base')
-
-    ds_train = DS(df_train, tokenizer, multi_class = multi_class)
-    ds_cv = DS(df_cv, tokenizer, multi_class = multi_class)
-    ds_test = DS(df_test, tokenizer, multi_class = multi_class)
-
-    dl_train = DataLoader(ds_train, batch_size=batch_size)
-    dl_cv = DataLoader(ds_cv, batch_size=batch_size)
-    dl_test = DataLoader(ds_test, batch_size=batch_size)
-
-    if not os.path.exists('pretrained_models/roberta_base'):
-        model = get_model()
-        os.makedirs('pretrained_models/roberta_base')
-        model.save_pretrained('pretrained_models/roberta_base')
-    else:
-        model = get_model(pretrained_path='pretrained_models/roberta_base', multi_class=multi_class)
+        model = transformers.AutoModelForSequenceClassification.from_pretrained(
+            "pretrained_models/roberta_base"
+        )
+    wandb.init(project="sdg_clf", entity="tolleren")
+    wandb.config = {"epochs": epochs, "batch_size": batch_size, "learning_rate": 3e-5}
 
     if multi_class:
         criterion = torch.nn.BCEWithLogitsLoss()
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
-    trainer = SDGTrainer(multi_class=multi_class, model=model, epochs=epochs, criterion=criterion, call_tqdm=call_tqdm, gpu_index=0)
-    trainer.train(dl_train, dl_cv)
-    trainer.test(dl_test)
+    if not folds:
+        ds["train"] = ds["train"].train_test_split(test_size=0.1)
+        dl_train = DataLoader(ds["train"]["train"], batch_size=batch_size)
+        dl_cv = DataLoader(ds["train"]["test"], batch_size=batch_size)
+        # dl_test = DataLoader(ds_test, batch_size=batch_size)
+        trainer = SDGTrainer(
+            multi_class=multi_class,
+            model=model,
+            epochs=epochs,
+            criterion=criterion,
+            call_tqdm=call_tqdm,
+            gpu_index=0,
+            metrics=metrics,
+        )
+        best_val_acc = trainer.train(dl_train, dl_cv)
+    else:
+        val_accs = []
+        kf = KFold(n_splits=folds)
+        for i, (train_index, cv_index) in enumerate(
+            kf.split([*range(ds["train"].num_rows)])
+        ):
+            print(f"Validating on fold {i}\n")
+            ds_train = ds["train"].select(train_index)
+            ds_cv = ds["train"].select(cv_index)
+            dl_train = DataLoader(ds_train, batch_size=batch_size)
+            dl_cv = DataLoader(ds_cv, batch_size=batch_size)
+
+            model.apply(utils.reset_weights)
+            trainer = SDGTrainer(
+                model=model,
+                epochs=epochs,
+                criterion=criterion,
+                call_tqdm=call_tqdm,
+                gpu_index=0,
+                metrics=metrics,
+            )
+            best_val_acc = trainer.train(dl_train, dl_cv)["accuracy"]
+            val_accs.append(best_val_acc)
+            wandb.log({"fold": i, "best_val_acc": best_val_acc})
+        wandb.log({"avg_val_acc": np.mean(val_accs)})
 
 
-if __name__ == '__main__':
-    main(batch_size=20, epochs=10, multi_class=True, call_tqdm=False)
+if __name__ == "__main__":
+    metrics = {
+        "accuracy": {
+            "goal": "maximize",
+            "metric": torchmetrics.Accuracy(subset_accuracy=True),
+        }
+    }
+    main(
+        batch_size=16,
+        epochs=3,
+        multi_class=True,
+        call_tqdm=True,
+        nrows=100,
+        folds=3,
+        metrics=metrics,
+    )
+
+    # main(
+    #     batch_size=16,
+    #     epochs=3,
+    #     multi_class=True,
+    #     call_tqdm=False,
+    #     folds=3,
+    #     metrics=metrics,
+    # )

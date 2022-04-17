@@ -5,7 +5,7 @@ import os
 import re
 import datasets
 
-     
+
 def remove_with_regex(sample: dict, pattern: re.Pattern = None):
     """Deletes every match with the "pattern".
     Sample must have a 'text' feature.
@@ -51,7 +51,7 @@ def preprocess(sample: dict, tokenizer: transformers.PreTrainedTokenizer):
     sample['attention_mask'] = encoding.attention_mask
     return sample
 
-def load_dataset(file: str="data/raw/allSDGtweets.csv", seed: int = 0, nrows: int = None, multi_class: bool = True):
+def load_dataset(file: str="data/raw/allSDGtweets.csv", seed: int = 0, nrows: int = None, multi_class: bool = True, tokenizer_type: str = 'roberta-base'):
     """Loads the tweet CSV into a huggingface dataset and apply the preprocessing
 
     Args:
@@ -81,13 +81,14 @@ def load_dataset(file: str="data/raw/allSDGtweets.csv", seed: int = 0, nrows: in
     tweet_dataset = tweet_dataset.filter(lambda sample: sample['lang'] == 'en') 
     print(f"Length of dataset after removing non-english tweets: {tweet_dataset.num_rows}")
     
-    # apply the preprocessing function to every sample 
-    if not os.path.exists('tokenizers/roberta_base'):
-        tokenizer = transformers.AutoTokenizer.from_pretrained('roberta-base')
-        os.makedirs('tokenizers/roberta_base')
-        tokenizer.save_pretrained('tokenizers/roberta_base')
+    # apply the preprocessing function to every sample
+    tokenizer_path = "tokenizers/" + tokenizer_type.replace("-", "_") 
+    if not os.path.exists(tokenizer_path):
+        tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
+        os.makedirs(tokenizer_path)
+        tokenizer.save_pretrained(tokenizer_path)
     else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained('tokenizers/roberta_base')
+        tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
     tweet_dataset = tweet_dataset.map(preprocess, num_proc=6, fn_kwargs={"tokenizer": tokenizer})
 
     # remove redundant columns

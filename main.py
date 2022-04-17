@@ -4,7 +4,6 @@ import os
 
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
-from tweet_dataset import DS
 from sklearn.model_selection import train_test_split
 import transformers
 from sklearn.model_selection import KFold
@@ -29,21 +28,24 @@ def main(
     folds: int = False,
     metrics: dict = None,
     seed: int = 0,
+    model_type: str = "roberta-base"
 ):
     os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
+    os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
     ds = tweet_dataset.load_dataset(file=csv_path, nrows=nrows, multi_class=multi_class)
     ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
-    if not os.path.exists("pretrained_models/roberta_base"):
+    model_path = "pretrained_models/" + model_type.replace("-", "_")
+    if not os.path.exists(model_path):
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
-            "roberta-base"
+            model_type, num_labels=17
         )
 
-        os.makedirs("pretrained_models/roberta_base")
-        model.save_pretrained("pretrained_models/roberta_base")
+        os.makedirs(model_path)
+        model.save_pretrained(model_path)
     else:
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
-            "pretrained_models/roberta_base"
+            model_path, num_labels=17
         )
     # wandb.init(project="sdg_clf", entity="tolleren")
     wandb.init(project="sdg_clf", entity="rsm-git")
@@ -120,4 +122,5 @@ if __name__ == "__main__":
         call_tqdm=False,
         folds=10,
         metrics=metrics,
+        model_type = "roberta-large"
     )

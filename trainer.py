@@ -8,19 +8,21 @@ from typing import Callable
 from tqdm import tqdm, trange
 
 from datetime import datetime
-
+import datasets
+import tweet_dataset
+import torchmetrics
+import transformers
+import model
 
 class Trainer:
-    def __init__(self, model=None, optimizer: Callable=None,
-                 epochs: int = None, seed: int=0, criterion: Callable=None,
+    def __init__(self, model=None, epochs: int = None, metrics: dict=None, save_metric: str = None, criterion: Callable=None,
                  save_filename: str = 'best_model', gpu_index: int = None,
-                 save_model: bool = False, call_tqdm: bool = True):
+                 save_model: bool = False, call_tqdm: bool = True, maximize_metric=True):
         """
         save_filename : str
             name of file without extension. Unique id will be added
             when training
         """
-        self.seed = seed
         if gpu_index is not None:
             self.device = f"cuda:{gpu_index}"
         else:
@@ -32,6 +34,10 @@ class Trainer:
         self.criterion = criterion
         self.save_model = save_model
         self.call_tqdm = call_tqdm
+        self.metrics = {k: v.to(self.device) for k, v in metrics.items()}
+        
+        self.save_metric = save_metric
+        self.maximize_metric = maximize_metric
 
     def train_step(self, batch):
         """
@@ -47,31 +53,30 @@ class Trainer:
         :param batch: 
         :return:
         Returns a dictionary that must have the key 'loss'.
-        Must have key 'n_correct' to calculate accuracy 
         """
         raise NotImplementedError("validation_step must be implemented")
 
     def train(self, train_dataloader=None, val_dataloader=None):
+        if self.maximize_metric:
+            best_save_metric = -float("inf")
+        else:
+            best_save_metric = float("inf")
         print(f"Training on device: {self.device}")
-        self.seed_everything(self.seed)
-        best_acc = 0
         self.time = datetime.now().strftime('%m%d%H%M%S')
         # validation check
         print("Validation check")
         self.model.eval()
         val_dataloader_iterator = iter(val_dataloader)
-        n_samples = 0
-        val_step_outputs = []
         for i in trange(2):
             with torch.no_grad():
                 batch = next(val_dataloader_iterator)
-                n_samples += self.get_batch_size(batch)
                 batch = self.move_to(batch)
                 val_step_out = self.validation_step(batch)
-                val_step_out = self.detach_outputs(val_step_out)
-                val_step_outputs.append(val_step_out)
+                self.update_metrics(val_step_out)
+        # check if all metrics can be computed
+        self.compute_metrics()
         
-        avg_outputs = self.avg_outputs(val_step_outputs, n_samples)
+
         print("Validation check completed\n")
     
         # train
@@ -79,47 +84,55 @@ class Trainer:
         print("Training")
         for epoch in trange(self.epochs):
             # training
-            n_samples = 0
-            train_step_outputs = []
+            self.reset_metrics()
+            total_train_loss = 0
+            batches = 0
             for batch in tqdm(train_dataloader, disable = not self.call_tqdm):
-                n_samples += self.get_batch_size(batch)
                 batch = self.move_to(batch)
                 train_step_out = self.train_step(batch)
                 self.step_optimizer(train_step_out)
-                train_step_out = self.detach_outputs(train_step_out)
-                train_step_outputs.append(train_step_out)
-            
-            avg_outputs = self.avg_outputs(train_step_outputs, n_samples)
-            train_loss = avg_outputs['loss']
-            train_accuracy = avg_outputs.get('n_correct')
+                self.update_metrics(train_step_out) 
+                total_train_loss += train_step_out['loss']
+                batches += 1
+            epoch_metrics_train = self.compute_metrics()
+            avg_train_loss = total_train_loss / batches
             
             # validation
+            self.reset_metrics()
             self.model.eval()
-            n_samples = 0
-            val_step_outputs = []
+
+            total_val_loss = 0
+            batches = 0
             with torch.no_grad():
                 for batch in tqdm(val_dataloader, disable = not self.call_tqdm):
-                    n_samples += self.get_batch_size(batch)
                     batch = self.move_to(batch)
                     val_step_out = self.validation_step(batch)
-                    val_step_out = self.detach_outputs(val_step_out)
-                    val_step_outputs.append(val_step_out)
+                    self.update_metrics(val_step_out)
+                    total_val_loss += val_step_out['loss']
+                    batches += 1
+            epoch_metrics_val = self.compute_metrics()
+            avg_val_loss = total_val_loss / batches
+
+            if self.save_model:
+                new_best = False
+                if self.maximize_metric and epoch_metrics_val > best_save_metric:
+                    new_best = True 
+                elif not self.maximize_metric and epoch_metrics_val < best_save_metric:
+                    new_best = True
                 
-                avg_outputs = self.avg_outputs(val_step_outputs, n_samples)
-                val_loss = avg_outputs['loss']
-                val_accuracy = avg_outputs.get('n_correct')
-                
-            if val_accuracy > best_acc and self.save_model:
-                torch.save(self.model.state_dict(), self.save_filename + '_' + self.time + '.pt')
+                if new_best:
+                    torch.save(self.model.state_dict(), self.save_filename + '_' + self.time + '.pt')
                 
             print(f"Epoch {epoch}:")
-            print(f"    Train loss: {train_loss}")
-            if train_accuracy is not None:
-                print(f"    Train Accuracy: {train_accuracy}")
+            print("Training metrics")
+            print(f"    Train loss: {avg_train_loss}")
+            for k in self.metrics.keys():
+                print(f"    {k}: {epoch_metrics_train[k]}")
+            print("Validation metrics")
+            print(f"    Validation loss: {avg_val_loss}")
 
-            print(f"    Validation loss: {val_loss}")
-            if train_accuracy is not None:
-                print(f"    Validation Accuracy: {val_accuracy}")
+            for k in self.metrics.keys():
+                print(f"    {k}: {epoch_metrics_val[k]}")
 
     def test(self, test_dataloader):
         self.model.eval()
@@ -139,7 +152,18 @@ class Trainer:
         print(f"Test loss: {test_loss}")
         print(f"Test accuracy: {test_accuracy}")
 
+    def update_metrics(self, step_outputs: dict):
+        for metric in self.metrics.values():
+            metric.update(target=step_outputs["label"], preds=step_outputs["prediction"])
+        
+    def compute_metrics(self):
+        metric_values = {k: v.compute() for k, v in self.metrics.items()}
+        return metric_values
 
+    def reset_metrics(self):
+        for metric in self.metrics.values():
+            metric.reset()
+            
     def set_optimizer(self, model: torch.nn.Module):
         """
         should return an initialized optimizer with the parameters from model
@@ -196,7 +220,7 @@ class Trainer:
     def detach_outputs(output):
         for k, i in output.items():
             if type(i) == torch.Tensor:
-                output[k] = i.detach().cpu()
+                output[k] = i.detach()
         return output
     
     @staticmethod
@@ -213,40 +237,39 @@ class Trainer:
             return Trainer.get_batch_size(list(batch.values())[0])   
 
 class SDGTrainer(Trainer):
-    def __init__(self, multi_class=False, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.multi_class = multi_class
     
     def train_step(self, batch):
         tokens = batch['input_ids']
         attention_mask = batch['attention_mask']
-        label = batch['labels']
-        if self.multi_class:
-            out = self.model(tokens, attention_mask)
-            out_ = torch.sigmoid(out)
-            out_ = out_ > 0.5
-            n_correct = torch.sum(torch.all(out_ == label, dim=1))
-        else:
-            out = self.model(tokens, attention_mask)['logits']
-            n_correct = torch.sum(torch.argmax(out, dim=1) == label)
-        loss = self.criterion(out, label)
-        return {'loss': loss, 'n_correct': n_correct}
+        label = batch['label']
+        out = self.model(tokens, attention_mask)['logits']
+        loss = self.criterion(out, label.float())
+        return {'loss': loss, "prediction": out, "label": label} 
 
     def validation_step(self, batch):
         tokens = batch['input_ids']
         attention_mask = batch['attention_mask']
-        label = batch['labels']
-        if self.multi_class:
-            out = self.model(tokens, attention_mask)
-            out_ = torch.sigmoid(out)
-            out_ = out_ > 0.5
-            n_correct = torch.sum(torch.all(out_ == label, dim=1))
-        else:
-            out = self.model(tokens, attention_mask)['logits']
-            n_correct = torch.sum(torch.argmax(out, dim=1) == label)
-        loss = self.criterion(out, label)
-        return {'loss': loss, 'n_correct': n_correct}
+        label = batch['label']
+        out = self.model(tokens, attention_mask)["logits"]
+        loss = self.criterion(out, label.float())
+        return {'loss': loss, "prediction": out, "label": label}
 
     def set_optimizer(self, model):
         optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
         return optimizer
+
+if __name__ == "__main__":
+    dataset = tweet_dataset.load_dataset()
+    dataset_train = dataset["train"]
+    dataset_val = dataset["test"]
+    dataset_train.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
+    dataset_val.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
+    dataloader_val = torch.utils.data.DataLoader(dataset_val, batch_size=16)
+    dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=16)
+    metrics = {"accuracy": torchmetrics.Accuracy(subset_accuracy=True)}
+    sdg_model = model.get_model()
+    criterion = torch.nn.BCEWithLogitsLoss()
+    trainer = SDGTrainer(metrics=metrics, epochs=3, model=sdg_model, criterion=criterion)
+    trainer.train(train_dataloader=dataloader_train, val_dataloader=dataloader_val)

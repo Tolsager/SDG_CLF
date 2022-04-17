@@ -4,20 +4,17 @@ import os
 
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
-from dataset import DS
+from tweet_dataset import DS
 from sklearn.model_selection import train_test_split
+import transformers
 
 # our scripts
-from trainer import SDGTrainer
-from model import get_model
+import trainer
+import tweet_dataset
 
 
 def main(batch_size: int=16, csv_path: str='data/raw/allSDGtweets.csv', epochs: int=2, multi_class: bool = False, call_tqdm: bool = True):
-    os.chdir(os.path.dirname(__file__))
-    df = pd.read_csv(csv_path, encoding='latin1')
-    df = df[df['lang'] == 'en']
-    if not multi_class:
-        df = df[df['nclasses'] == 1]
+    # os.chdir(os.path.dirname(__file__))
     df = df.drop_duplicates('text')
     df = df.sample(frac=1)
     # df = df.sample(frac=0.01)

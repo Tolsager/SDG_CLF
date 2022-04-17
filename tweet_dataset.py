@@ -5,38 +5,7 @@ import os
 import re
 import datasets
 
-class DS(torch.utils.data.Dataset):
-    def __init__(self, df: pd.DataFrame, tokenizer: transformers.PreTrainedTokenizer, multi_class: bool = False):
-        self.df = df
-        self.multi_class = multi_class
-        self.tokenizer = tokenizer
-        self.sdgs = [f'#sdg{i}' for i in range(1, 18)]
-        self.sdg_prog = re.compile(r'#(sdg)s?(\s+)?(\d+)?')
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, idx):
-        tweet = self.df.loc[idx, 'text'].lower()
-        labels = self.df.loc[idx, self.sdgs]
-        num_labels = self.df.loc[idx, 'nclasses']
-
-        tweet = self.sdg_prog.subn('', tweet)[0]
-        tweet = ' '.join(tweet.split())
-    
-        if not self.multi_class:
-            labels = torch.tensor(labels, dtype=torch.uint8).argmax(dim=0)
-        else:
-            labels = torch.tensor(labels, dtype=torch.float32)
-
-        encoding = self.tokenizer(tweet, padding='max_length', max_length=252, return_tensors='pt', truncation=True)
-
-        ids = torch.squeeze(encoding['input_ids'])
-        mask = torch.squeeze(encoding['attention_mask'])
-
-        return {'input_ids': ids.long(), 'attention_mask': mask.int(), 'labels': labels, "num_labels": num_labels}
-
-        
+     
 def remove_with_regex(sample: dict, pattern: re.Pattern = None):
     """Deletes every match with the "pattern".
     Sample must have a 'text' feature.

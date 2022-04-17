@@ -30,6 +30,7 @@ def main(
     metrics: dict = None,
     seed: int = 0,
 ):
+    os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
     utils.seed_everything(seed)
     ds = tweet_dataset.load_dataset(file=csv_path, nrows=nrows, multi_class=multi_class)
     ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
@@ -44,7 +45,8 @@ def main(
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
             "pretrained_models/roberta_base"
         )
-    wandb.init(project="sdg_clf", entity="tolleren")
+    # wandb.init(project="sdg_clf", entity="tolleren")
+    wandb.init(project="sdg_clf", entity="rsm-git")
     wandb.config = {"epochs": epochs, "batch_size": batch_size, "learning_rate": 3e-5}
 
     if multi_class:
@@ -101,21 +103,21 @@ if __name__ == "__main__":
             "metric": torchmetrics.Accuracy(subset_accuracy=True),
         }
     }
-    main(
-        batch_size=16,
-        epochs=3,
-        multi_class=True,
-        call_tqdm=True,
-        nrows=100,
-        folds=3,
-        metrics=metrics,
-    )
-
     # main(
     #     batch_size=16,
     #     epochs=3,
     #     multi_class=True,
-    #     call_tqdm=False,
+    #     call_tqdm=True,
+    #     nrows=100,
     #     folds=3,
     #     metrics=metrics,
     # )
+
+    main(
+        batch_size=16,
+        epochs=3,
+        multi_class=True,
+        call_tqdm=False,
+        folds=10,
+        metrics=metrics,
+    )

@@ -28,7 +28,7 @@ def main(
     folds: int = False,
     metrics: dict = None,
     seed: int = 0,
-    model_type: str = "roberta-base"
+    model_type: str = "roberta-base",
 ):
     os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
     os.chdir(os.path.dirname(__file__))
@@ -122,5 +122,5 @@ if __name__ == "__main__":
         call_tqdm=False,
         folds=10,
         metrics=metrics,
-        model_type = "roberta-large"
+        model_type="roberta-base",
     )

@@ -104,7 +104,7 @@ class Trainer:
                 train_step_out = self.train_step(batch)
                 self.step_optimizer(train_step_out)
                 self.update_metrics(train_step_out)
-                total_train_loss += train_step_out["loss"]
+                total_train_loss += train_step_out["loss"].detach()
                 batches += 1
             epoch_metrics_train = self.compute_metrics()
             avg_train_loss = total_train_loss / batches

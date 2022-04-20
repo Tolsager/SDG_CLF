@@ -4,7 +4,12 @@ import torch
 import os
 
 
-def seed_everything(seed_value):
+def seed_everything(seed_value: int):
+    """Sets seed for random, numpy, torch, and os to run controlled experiments
+
+    Args:
+        seed_value (int): Integer specifying seed
+    """
     random.seed(seed_value)
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)

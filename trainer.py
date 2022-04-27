@@ -282,6 +282,13 @@ class SDGTrainer(Trainer):
         optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
         return optimizer
 
+    def update_metrics(self, step_outputs: dict):
+        for metric in self.metrics.values():
+            metric["metric"].update(
+                target=step_outputs["label"],
+                preds=step_outputs["prediction"].sigmoid() if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss)
+                else step_outputs["prediction"],
+            )
 
 if __name__ == "__main__":
     dataset = tweet_dataset.load_dataset(nrows=4000)

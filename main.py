@@ -29,6 +29,7 @@ def main(
     metrics: dict = None,
     seed: int = 0,
     model_type: str = "roberta-base",
+    log: bool = True,
 ):
     """main() completes multi_label learning loop for one ROBERTA model using either one model order cross-validation to find
     the best hyper parameters. Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
@@ -44,12 +45,14 @@ def main(
         metrics (dict, optional): Specification of metrics using torchmetrics. Defaults to None.
         seed (int, optional): Random seed specification for controlled experiments. Defaults to 0.
         model_type (str, optional): Specification of pre-trained hugging face model used. Defaults to "roberta-base".
+        log (bool, optional): Enables/disables logging via. Weights and Biases. Defaults to True.
     """
 
     # Setup W and B project log
-    os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
-    wandb.init(project="sdg_clf", entity="pydqn")
-    wandb.config = {"epochs": epochs, "batch_size": batch_size, "learning_rate": 3e-5}
+    if log:
+        os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
+        wandb.init(project="sdg_clf", entity="pydqn")
+        wandb.config = {"epochs": epochs, "batch_size": batch_size, "learning_rate": 3e-5}
 
     # Setup correct directory and seed
     os.chdir(os.path.dirname(__file__))
@@ -128,18 +131,20 @@ def main(
                 metrics=metrics,
             )
             best_val_acc = trainer.train(dl_train, dl_cv)["accuracy"]
-            wandb.log({"fold": i, "best_val_acc": best_val_acc})
+            if log:
+                wandb.log({"fold": i, "best_val_acc": best_val_acc})
 
             # Collect accuracies from current fold and store the average accuracy from all folds after completion
             val_accs.append(best_val_acc)
-        wandb.log({"avg_val_acc": np.mean(val_accs)})
+        if log:
+            wandb.log({"avg_val_acc": np.mean(val_accs)})
 
 
 if __name__ == "__main__":
     metrics = {
         "accuracy": {
             "goal": "maximize",
-            "metric": torchmetrics.Accuracy(subset_accuracy=True),
+            "metric": torchmetrics.Accuracy(subset_accuracy=True, multiclass=False),
         }
     }
     # main(
@@ -153,11 +158,12 @@ if __name__ == "__main__":
     # )
 
     main(
-        batch_size=16,
+        batch_size=8,
         epochs=3,
         multi_label=True,
         call_tqdm=False,
-        folds=10,
+        folds=None,
         metrics=metrics,
         model_type="roberta-base",
+        log=False,
     )

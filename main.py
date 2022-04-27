@@ -1,4 +1,5 @@
 import pandas as pd
+import datasets
 import torch
 import os
 
@@ -33,7 +34,8 @@ def main(
     os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
-    ds = tweet_dataset.load_dataset(file=csv_path, nrows=nrows, multi_class=multi_class)
+    try:
+        dataset_dict = datasets.load_from_disk("data/processed")
     ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
     model_path = "pretrained_models/" + model_type.replace("-", "_")
     if not os.path.exists(model_path):

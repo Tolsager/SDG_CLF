@@ -34,8 +34,13 @@ def main(
     os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
+    save_path = "data/processed"
+    save_path += f"/{model_type}"
+    dataset_dict.save_to_disk("data/processed")
     try:
         dataset_dict = datasets.load_from_disk("data/processed")
+    
+
     ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
     model_path = "pretrained_models/" + model_type.replace("-", "_")
     if not os.path.exists(model_path):

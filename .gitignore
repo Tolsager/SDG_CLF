@@ -3,10 +3,11 @@
 tokenizers/
 pretrained_models/
 *.csv
-.vscode/
+.vscode
 wandb
 data
 playground.py
+.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

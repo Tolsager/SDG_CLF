@@ -31,31 +31,33 @@ def main(
     seed: int = 0,
     model_type: str = "roberta-base",
 ):
-    os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
     save_path = "data/processed"
     save_path += f"/{model_type}"
-    dataset_dict.save_to_disk("data/processed")
-    try:
-        dataset_dict = datasets.load_from_disk("data/processed")
-    
 
-    ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
+    # get the dataset dict with splits
+    ds_dict = tweet_dataset.get_dataset()
+
+    # convert the model input for every split to tensors
+    for ds in ds_dict.values():
+        ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
+
+    # load model
     model_path = "pretrained_models/" + model_type
     if not os.path.exists(model_path):
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
             model_type, num_labels=17
         )
 
-        os.makedirs(model_path)
+        # I think hugggingface uses makedirs so the following line should be redundant but needs to be tested
+        # os.makedirs(model_path)
         model.save_pretrained(model_path)
     else:
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
             model_path, num_labels=17
         )
-    # wandb.init(project="sdg_clf", entity="tolleren")
-    wandb.init(project="sdg_clf", entity="rsm-git")
+    wandb.init(project="sdg_clf", entity="pydqn")
     wandb.config = {"epochs": epochs, "batch_size": batch_size, "learning_rate": 3e-5}
 
     if multi_class:
@@ -64,10 +66,8 @@ def main(
         criterion = torch.nn.CrossEntropyLoss()
 
     if not folds:
-        ds["train"] = ds["train"].train_test_split(test_size=0.1)
-        dl_train = DataLoader(ds["train"]["train"], batch_size=batch_size)
-        dl_cv = DataLoader(ds["train"]["test"], batch_size=batch_size)
-        # dl_test = DataLoader(ds_test, batch_size=batch_size)
+        dl_train = DataLoader(ds_dict["train"], batch_size=batch_size)
+        dl_cv = DataLoader(ds_dict["validation"], batch_size=batch_size)
         trainer = SDGTrainer(
             multi_class=multi_class,
             model=model,
@@ -79,6 +79,7 @@ def main(
         )
         best_val_acc = trainer.train(dl_train, dl_cv)
     else:
+        # code for folds which will not be used
         val_accs = []
         kf = KFold(n_splits=folds)
         for i, (train_index, cv_index) in enumerate(
@@ -127,7 +128,6 @@ if __name__ == "__main__":
         epochs=3,
         multi_class=True,
         call_tqdm=False,
-        folds=10,
         metrics=metrics,
         model_type="roberta-base",
     )

@@ -75,10 +75,7 @@ def load_dataset(
     """
     # load the csv file into a huggingface dataset
     # Set the encodign to latin to be able to read special characters such as ñ
-    if nrows is not None:
-        tweet_df = pd.read_csv(file, encoding="latin", nrows=nrows)
-    else:
-        tweet_df = pd.read_csv(file, encoding="latin", nrows=nrows)
+    tweet_df = pd.read_csv(file, encoding="latin", nrows=nrows)
 
     tweet_df = tweet_df.drop_duplicates("text")
     tweet_dataset = datasets.Dataset.from_pandas(tweet_df)
@@ -155,11 +152,11 @@ def get_dataset(tokenizer_type: str, path_csv: str = "data/raw/allSDGtweets.csv"
         path_csv (str, optional): path to raw tweet csv. Is only used if there is no processed dataset. Defaults to "data/raw/allSDGtweets.csv".
 
     Returns:
-        dataset.DatasetDict: the processed dataset
+        datasets.DatasetDict: the processed dataset
     """
     path_ds = f"data/processed/{tokenizer_type}"
     if not os.path.exists(path_ds):
-        create_processed_dataset(path_csv)
+        create_processed_dataset(path_csv, tokenizer_type=tokenizer_type)
     ds = datasets.load_from_disk(path_ds)
     return ds
 
@@ -173,5 +170,6 @@ if __name__ == "__main__":
     # print(type(tweet_dataset['train'][0]["input_ids"]))
     # create_processed_dataset("data/allSDGtweets.csv", nrows=20)
     # ds = datasets.load_from_disk("sodif")
-    get_dataset("roberta-base")
+    ds_dict = get_dataset("roberta-base")
+    print()
     # print

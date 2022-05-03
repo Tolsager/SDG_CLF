@@ -100,7 +100,7 @@ def load_dataset(
     )
 
     # apply the preprocessing function to every sample
-    tokenizer_path = "tokenizers/" + tokenizer_type.replace("-", "_")
+    tokenizer_path = "tokenizers/" + tokenizer_type
     if not os.path.exists(tokenizer_path):
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
         os.makedirs(tokenizer_path)
@@ -143,7 +143,25 @@ def create_processed_dataset(
     dataset_dict = datasets.DatasetDict(dataset_splits)
     save_path = "data/processed"
     save_path += f"/{tokenizer_type}"
-    dataset_dict.save_to_disk("data/processed")
+    dataset_dict.save_to_disk(save_path)
+
+
+def get_dataset(tokenizer_type: str, path_csv: str = "data/raw/allSDGtweets.csv"):
+    """either loads the processed dataset if it exists and otherwise
+    creates the dataset and saves it to disk.
+
+    Args:
+        tokenizer_type (str): a huggingface tokenizer type such as "roberta-base"
+        path_csv (str, optional): path to raw tweet csv. Is only used if there is no processed dataset. Defaults to "data/raw/allSDGtweets.csv".
+
+    Returns:
+        dataset.DatasetDict: the processed dataset
+    """
+    path_ds = f"data/processed/{tokenizer_type}"
+    if not os.path.exists(path_ds):
+        create_processed_dataset(path_csv)
+    ds = datasets.load_from_disk(path_ds)
+    return ds
 
 
 if __name__ == "__main__":
@@ -154,5 +172,6 @@ if __name__ == "__main__":
     # print(tweet_dataset)
     # print(type(tweet_dataset['train'][0]["input_ids"]))
     # create_processed_dataset("data/allSDGtweets.csv", nrows=20)
-    ds = datasets.load_from_disk("sodif")
+    # ds = datasets.load_from_disk("sodif")
+    get_dataset("roberta-base")
     # print

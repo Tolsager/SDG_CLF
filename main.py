@@ -42,7 +42,7 @@ def main(
     
 
     ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
-    model_path = "pretrained_models/" + model_type.replace("-", "_")
+    model_path = "pretrained_models/" + model_type
     if not os.path.exists(model_path):
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
             model_type, num_labels=17

@@ -12,11 +12,11 @@ import wandb
 import numpy as np
 
 # our scripts
-from trainer import SDGTrainer
-import tweet_dataset
-from model import get_model
+from sdg_clf.trainer import SDGTrainer
+import sdg_clf.tweet_dataset
+from sdg_clf.model import get_model
 import torchmetrics
-import utils
+import sdg_clf.utils
 
 
 def main(
@@ -53,7 +53,11 @@ def main(
     if log:
         os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
         wandb.init(project="sdg_clf", entity="pydqn")
-        wandb.config = {"epochs": epochs, "batch_size": batch_size, "learning_rate": 3e-5}
+        wandb.config = {
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "learning_rate": 3e-5,
+        }
 
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)

@@ -28,7 +28,7 @@ class Trainer:
         gpu_index: int = None,
         save_model: bool = False,
         call_tqdm: bool = True,
-        log: bool = True
+        log: bool = True,
     ):
         """
         save_filename : str
@@ -175,7 +175,7 @@ class Trainer:
 
             for k in self.metrics.keys():
                 print(f"    {k}: {epoch_metrics_val[k]}")
-            
+
             if self.log:
                 log_train = {f"train_{k}": v for k, v in epoch_metrics_train.items()}
                 log_train["train_loss"] = avg_train_loss

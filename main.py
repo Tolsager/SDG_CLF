@@ -69,7 +69,6 @@ def main(
         dl_train = DataLoader(ds_dict["train"], batch_size=batch_size)
         dl_cv = DataLoader(ds_dict["validation"], batch_size=batch_size)
         trainer = SDGTrainer(
-            multi_class=multi_class,
             model=model,
             epochs=epochs,
             criterion=criterion,

@@ -5,7 +5,7 @@ import os
 import re
 import datasets
 
-from tweet_dataset import preprocess
+from sdg_clf.tweet_dataset import preprocess
 
 """Ideas for splitting the Scopus data into smaller sentences
     1. Use the average (or max) length of the tweets and split regardless of sentence ending

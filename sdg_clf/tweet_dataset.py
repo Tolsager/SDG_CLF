@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import pandas as pd
 import transformers
 import os
@@ -74,7 +75,11 @@ def load_dataset(
     nrows: int = None,
     multi_label: bool = True,
     tokenizer_type: str = "roberta-base",
+<<<<<<< HEAD:tweet_dataset.py
     tweet: bool = True,
+=======
+    split: bool = True,
+>>>>>>> main:sdg_clf/tweet_dataset.py
 ):
     """Loads the tweet CSV into a huggingface dataset and apply the preprocessing
 
@@ -110,7 +115,7 @@ def load_dataset(
     )
 
     # apply the preprocessing function to every sample
-    tokenizer_path = "tokenizers/" + tokenizer_type.replace("-", "_")
+    tokenizer_path = "tokenizers/" + tokenizer_type
     if not os.path.exists(tokenizer_path):
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
         os.makedirs(tokenizer_path)
@@ -126,18 +131,63 @@ def load_dataset(
         [f"#sdg{i}" for i in range(1, 18)] + ["lang"] + ["__index_level_0__"]
     )
 
-    tweet_dataset = tweet_dataset.shuffle(seed=seed)
+    if split:
+        tweet_dataset = tweet_dataset.shuffle(seed=seed)
 
-    # tweet_dataset = tweet_dataset.cast_column("label", datasets.Sequence(datasets.Value("float32")))
-    tweet_dataset = tweet_dataset.train_test_split(test_size=0.1)
+        # tweet_dataset = tweet_dataset.cast_column("label", datasets.Sequence(datasets.Value("float32")))
+        tweet_dataset = tweet_dataset.train_test_split(test_size=0.1)
     return tweet_dataset
 
 
+def create_processed_dataset(
+    path: str, tokenizer_type: str = "roberta-base", nrows: int = None
+):
+
+    tweet_dataset = load_dataset(
+        path, split=False, tokenizer_type=tokenizer_type, nrows=nrows
+    )
+    tweet_dataset = tweet_dataset.shuffle(seed=0)
+    splits = 10
+    dataset_splits = {
+        "train": datasets.concatenate_datasets(
+            [tweet_dataset.shard(splits, i) for i in range(2, splits)]
+        ),
+        "validation": tweet_dataset.shard(splits, 0),
+        "test": tweet_dataset.shard(splits, 1),
+    }
+    dataset_dict = datasets.DatasetDict(dataset_splits)
+    save_path = "data/processed"
+    save_path += f"/{tokenizer_type}"
+    dataset_dict.save_to_disk(save_path)
+
+
+def get_dataset(tokenizer_type: str, path_csv: str = "data/raw/allSDGtweets.csv"):
+    """either loads the processed dataset if it exists and otherwise
+    creates the dataset and saves it to disk.
+
+    Args:
+        tokenizer_type (str): a huggingface tokenizer type such as "roberta-base"
+        path_csv (str, optional): path to raw tweet csv. Is only used if there is no processed dataset. Defaults to "data/raw/allSDGtweets.csv".
+
+    Returns:
+        datasets.DatasetDict: the processed dataset
+    """
+    path_ds = f"data/processed/{tokenizer_type}"
+    if not os.path.exists(path_ds):
+        create_processed_dataset(path_csv, tokenizer_type=tokenizer_type)
+    ds = datasets.load_from_disk(path_ds)
+    return ds
+
+
 if __name__ == "__main__":
-    tweet_dataset = load_dataset(nrows=10)
-    # tweet_dataset = load_dataset(nrows=10, multi_label=False)
+    # tweet_dataset = load_dataset(nrows=10)
+    # tweet_dataset = load_dataset(nrows=10, multi_class=False)
     # tweet_dataset = load_dataset()
-    tweet_dataset.set_format("torch", columns=["input_ids", "label", "attention_mask"])
+    # tweet_dataset.set_format("torch", columns=["input_ids", "label", "attention_mask"])
     # print(tweet_dataset)
-    print(type(tweet_dataset["train"][0]["input_ids"]))
+    # print(type(tweet_dataset['train'][0]["input_ids"]))
+    # create_processed_dataset("data/allSDGtweets.csv", nrows=20)
+    # ds = datasets.load_from_disk("sodif")
+    ds_dict = get_dataset("roberta-base")
     print()
+    # print

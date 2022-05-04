@@ -37,7 +37,7 @@ def main(
     save_path += f"/{model_type}"
 
     # get the dataset dict with splits
-    ds_dict = tweet_dataset.get_dataset()
+    ds_dict = tweet_dataset.get_dataset(tokenizer_type=model_type)
 
     # convert the model input for every split to tensors
     for ds in ds_dict.values():

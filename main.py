@@ -13,10 +13,10 @@ import numpy as np
 
 # our scripts
 from sdg_clf.trainer import SDGTrainer
-import sdg_clf.tweet_dataset
+from sdg_clf import tweet_dataset
 from sdg_clf.model import get_model
 import torchmetrics
-import sdg_clf.utils
+from sdg_clf import utils
 
 
 def main(

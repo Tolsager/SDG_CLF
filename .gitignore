@@ -1,3 +1,14 @@
+# our ignores
+*.pt
+tokenizers/
+pretrained_models/
+*.csv
+.vscode
+wandb
+data
+playground.py
+.idea
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,9 +138,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-*.pt
-tokenizers/
-pretrained_models/
-*.csv
-.vscode/

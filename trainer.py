@@ -13,6 +13,7 @@ import tweet_dataset
 import torchmetrics
 import transformers
 import model
+import wandb
 
 
 class Trainer:
@@ -27,6 +28,7 @@ class Trainer:
         gpu_index: int = None,
         save_model: bool = False,
         call_tqdm: bool = True,
+        log: bool = True,
     ):
         """
         save_filename : str
@@ -51,6 +53,7 @@ class Trainer:
         metrics = {"accuracy": {"goal": "maximize", "metric": torchmetrics.Accuracy}, ...}
         """
         self.save_metric = save_metric
+        self.log = log
 
     def train_step(self, batch):
         """
@@ -172,6 +175,13 @@ class Trainer:
 
             for k in self.metrics.keys():
                 print(f"    {k}: {epoch_metrics_val[k]}")
+
+            if self.log:
+                log_train = {f"train_{k}": v for k, v in epoch_metrics_train.items()}
+                log_train["train_loss"] = avg_train_loss
+                log_val = {f"val_{k}": v for k, v in epoch_metrics_train.items()}
+                wandb.log(log_train)
+                wandb.log(log_val)
         return self.best_val_metrics
 
     def test(self, test_dataloader):

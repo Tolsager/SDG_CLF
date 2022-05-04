@@ -1,4 +1,5 @@
 import pandas as pd
+import datasets
 import torch
 import os
 
@@ -54,24 +55,29 @@ def main(
         wandb.init(project="sdg_clf", entity="pydqn")
         wandb.config = {"epochs": epochs, "batch_size": batch_size, "learning_rate": 3e-5}
 
-    # Setup correct directory and seed
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
+    # Setup correct directory and seed
+    save_path = "data/processed"
+    save_path += f"/{model_type}"
 
-    # Load preprocessed dataset using Hugging face datasets package
-    ds = tweet_dataset.load_dataset(file=csv_path, nrows=nrows, multi_label=multi_label)
+    # get the dataset dict with splits
+    ds_dict = tweet_dataset.get_dataset(tokenizer_type=model_type)
 
-    # Set format of dataset to PyTorch and return only relevant columns
-    ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
+    # convert the model input for every split to tensors
+    for ds in ds_dict.values():
+        ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
 
-    # Load Huggingface model
-    model_path = "pretrained_models/" + model_type.replace("-", "_")
+    # load model
+    model_path = "pretrained_models/" + model_type
+
     if not os.path.exists(model_path):
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
             model_type, num_labels=17
         )
 
-        os.makedirs(model_path)
+        # I think hugggingface uses makedirs so the following line should be redundant but needs to be tested
+        # os.makedirs(model_path)
         model.save_pretrained(model_path)
     else:
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
@@ -84,15 +90,9 @@ def main(
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
-    # Training loops
-    if not folds:  # folds = False (no cross validation)
-        # Hold out train (90%) and validation (10%) set
-        ds["train"] = ds["train"].train_test_split(test_size=0.1)
-        dl_train = DataLoader(ds["train"]["train"], batch_size=batch_size)
-        dl_cv = DataLoader(ds["train"]["test"], batch_size=batch_size)
-        # dl_test = DataLoader(ds_test, batch_size=batch_size)
-
-        # Call instance of SDGTrainer and evaluate on holdout validation set
+    if not folds:
+        dl_train = DataLoader(ds_dict["train"], batch_size=batch_size)
+        dl_cv = DataLoader(ds_dict["validation"], batch_size=batch_size)
         trainer = SDGTrainer(
             model=model,
             epochs=epochs,
@@ -102,7 +102,8 @@ def main(
             metrics=metrics,
         )
         best_val_acc = trainer.train(dl_train, dl_cv)
-    else:  # folds = int (cross validation)
+    else:
+        # code for folds which will not be used
         val_accs = []
 
         # Define k-fold cross validation using folds int
@@ -162,7 +163,6 @@ if __name__ == "__main__":
         epochs=3,
         multi_label=True,
         call_tqdm=False,
-        folds=None,
         metrics=metrics,
         model_type="roberta-base",
         log=False,

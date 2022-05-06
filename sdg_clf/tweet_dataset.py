@@ -25,7 +25,10 @@ def remove_with_regex(sample: dict, pattern: re.Pattern = None):
 
 
 def preprocess(
-    sample: dict, tokenizer: transformers.PreTrainedTokenizer, tweet: bool = True, textname: str = 'text'
+    sample: dict,
+    tokenizer: transformers.PreTrainedTokenizer,
+    tweet: bool = True,
+    textname: str = "text",
 ):
     """preprocess a sample of the dataset
 
@@ -33,7 +36,7 @@ def preprocess(
         sample (dict): dataset sample
         tokenizer (transformers.PreTrainedTokenizer): a pretrained tokenizer
         tweet (bool): whether the data are tweets or abstracts
-        textname (str): name of text column in 
+        textname (str): name of text column in
 
     Returns:
         dict: the preprocessed sample
@@ -75,11 +78,8 @@ def load_dataset(
     nrows: int = None,
     multi_label: bool = True,
     tokenizer_type: str = "roberta-base",
-<<<<<<< HEAD:tweet_dataset.py
     tweet: bool = True,
-=======
     split: bool = True,
->>>>>>> main:sdg_clf/tweet_dataset.py
 ):
     """Loads the tweet CSV into a huggingface dataset and apply the preprocessing
 

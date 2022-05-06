@@ -7,28 +7,6 @@ import datasets
 
 from sdg_clf.tweet_dataset import preprocess
 
-"""Ideas for splitting the Scopus data into smaller sentences
-    1. Use the average (or max) length of the tweets and split regardless of sentence ending
-    2. Use the max character length of a tweet and round down to work with full words (280 characters)
-    3. 
-
-
-Process:
-    1. Tokenize
-    2. 
-
-model.forward_scopus(input_ids):
-    split input ids into chunks
-    prepend chunk with [CLS]
-    append chunk with [EOS]
-    pad chunk
-
-    for every chunk:
-        preds.append(model(chunk))
-    
-    combine prediction and output final predictions
-"""
-
 
 def load_abstracts(
     file: str = "data/raw/scopus_ready_to_use.csv",
@@ -63,7 +41,7 @@ def load_abstracts(
     )
 
     # Chunking into
-    print(f"Length of dataset before chunking: {tweet_dataset.num_rows}")
+    print(f"Length of dataset before chunking: {abstracts_dataset.num_rows}")
 
     # apply the preprocessing function to every sample
     tokenizer_path = "tokenizers/" + tokenizer_type.replace("-", "_")
@@ -73,18 +51,18 @@ def load_abstracts(
         tokenizer.save_pretrained(tokenizer_path)
     else:
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
-    tweet_dataset = tweet_dataset.map(
+    abstracts_dataset = abstracts_dataset.map(
         preprocess,
         num_proc=6,
         fn_kwargs={"tokenizer": tokenizer, "tweet": False, "textname": "Abstract"},
     )
 
     # UPDATE LATER?
-    tweet_dataset = tweet_dataset.shuffle(seed=seed)
+    abstracts_dataset = abstracts_dataset.shuffle(seed=seed)
 
-    # tweet_dataset = tweet_dataset.cast_column("label", datasets.Sequence(datasets.Value("float32")))
-    tweet_dataset = tweet_dataset.train_test_split(test_size=0.1)
-    return tweet_dataset
+    # abstracts_dataset = abstracts_dataset.cast_column("label", datasets.Sequence(datasets.Value("float32")))
+    abstracts_dataset = abstracts_dataset.train_test_split(test_size=0.1)
+    return abstracts_dataset
 
 
 if __name__ == "__main__":
@@ -96,4 +74,3 @@ if __name__ == "__main__":
     )
     # print(tweet_dataset)
     print(type(abstracts_dataset["train"][0]["input_ids"]))
-    print()

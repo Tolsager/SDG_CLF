@@ -5,7 +5,7 @@ import os
 import re
 import datasets
 
-from sdg_clf.tweet_dataset import preprocess
+from tweet_dataset import preprocess
 
 
 def load_abstracts(
@@ -37,7 +37,17 @@ def load_abstracts(
 
     # remove unused columns
     abstracts_dataset = abstracts_dataset.remove_columns(
-        ["Title", "Year", "Link", "Author.Keywords", "Index.Keywords", "EID", "text"]
+        [
+            "Unnamed: 0",
+            "Title",
+            "Year",
+            "Link",
+            "Author.Keywords",
+            "Index.Keywords",
+            "EID",
+            "text",
+            "nclasses",
+        ]
     )
 
     # Chunking into
@@ -69,8 +79,8 @@ if __name__ == "__main__":
     abstracts_dataset = load_abstracts(nrows=10)
     # tweet_dataset = load_dataset(nrows=10, multi_label=False)
     # tweet_dataset = load_dataset()
-    abstracts_dataset.set_format(
-        "torch", columns=["input_ids", "label", "attention_mask"]
-    )
+    # abstracts_dataset.set_format(
+    #    "torch", columns=["input_ids", "label", "attention_mask"]
+    # )
     # print(tweet_dataset)
     print(type(abstracts_dataset["train"][0]["input_ids"]))

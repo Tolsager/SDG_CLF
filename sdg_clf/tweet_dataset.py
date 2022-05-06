@@ -7,7 +7,7 @@ import re
 import datasets
 
 
-def remove_with_regex(sample: dict, pattern: re.Pattern = None):
+def remove_with_regex(sample: dict, pattern: re.Pattern = None, textname: str = "text"):
     """Deletes every match with the "pattern".
     Sample must have a 'text' feature.
     Is used for the 'map' dataset method
@@ -20,7 +20,7 @@ def remove_with_regex(sample: dict, pattern: re.Pattern = None):
         sample_processed: sample with all regex matches removed
     """
 
-    sample["text"] = pattern.subn("", sample["text"])[0]
+    sample[textname] = pattern.subn("", sample[textname])[0]
     return sample
 
 
@@ -45,15 +45,15 @@ def preprocess(
 
     # remove labels from the tweet
     sdg_prog1 = re.compile(r"#(sdg)s?(\s+)?(\d+)?")
-    sample = remove_with_regex(sample, pattern=sdg_prog1)
+    sample = remove_with_regex(sample, pattern=sdg_prog1, textname=textname)
     sdg_prog2 = re.compile(r"(sdg)s?(\s?)(\d+)?")
-    sample = remove_with_regex(sample, pattern=sdg_prog2)
+    sample = remove_with_regex(sample, pattern=sdg_prog2, textname=textname)
     sdg_prog3 = re.compile(r"(sustainable development goals?\s?)(\d+)?")
-    sample = remove_with_regex(sample, pattern=sdg_prog3)
+    sample = remove_with_regex(sample, pattern=sdg_prog3, textname=textname)
     sdg_prog4 = re.compile(r"(© \d\d(\d?)\d)?\s")
-    sample = remove_with_regex(sample, pattern=sdg_prog4)
-    sdg_prog5 = re.compile(r"(Elsevier\sLtd)")
-    sample = remove_with_regex(sample, pattern=sdg_prog5)
+    sample = remove_with_regex(sample, pattern=sdg_prog4, textname=textname)
+    sdg_prog5 = re.compile(r"(elsevier\sLtd)")
+    sample = remove_with_regex(sample, pattern=sdg_prog5, textname=textname)
 
     # remove ekstra whitespace
     sample[textname] = " ".join(sample[textname].split())

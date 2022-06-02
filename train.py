@@ -149,11 +149,28 @@ def main(
 
 
 if __name__ == "__main__":
+    multilabel = True
     metrics = {
         "accuracy": {
             "goal": "maximize",
-            "metric": torchmetrics.Accuracy(subset_accuracy=True, multiclass=False),
-        }
+            "metric": torchmetrics.Accuracy(subset_accuracy=True, multiclass=not multilabel),
+        },
+        "auroc": {
+            "goal": "maximize",
+            "metric": torchmetrics.AUROC(num_classes=17),
+        },
+        "precision": {
+            "goal": "maximize",
+            "metric": torchmetrics.Precision(num_classes=17, multiclass=not multilabel),
+        },
+        "recall": {
+            "goal": "maximize",
+            "metric": torchmetrics.Recall(num_classes=17, multiclass=not multilabel),
+        },
+        "f1": {
+            "goal": "maximize",
+            "metric": torchmetrics.F1Score(num_classes=17, multiclass=not multilabel),
+        },
     }
     # main(
     #     batch_size=16,
@@ -168,7 +185,7 @@ if __name__ == "__main__":
     main(
         batch_size=16,
         epochs=20,
-        multi_label=True,
+        multi_label=multilabel,
         call_tqdm=True,
         metrics=metrics,
         model_type="roberta-base",

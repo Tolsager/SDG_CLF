@@ -67,7 +67,7 @@ def main(
     save_path += f"/{model_type}"
 
     # get the dataset dict with splits
-    ds_dict = tweet_dataset.get_dataset(tokenizer_type=model_type)
+    ds_dict = tweet_dataset.get_dataset(tokenizer_type=model_type, nrows=nrows)
 
     # convert the model input for every split to tensors
     for ds in ds_dict.values():
@@ -105,6 +105,7 @@ def main(
             call_tqdm=call_tqdm,
             gpu_index=0,
             metrics=metrics,
+            log=log,
         )
         best_val_acc = trainer.train(dl_train, dl_cv)
     else:
@@ -135,6 +136,7 @@ def main(
                 call_tqdm=call_tqdm,
                 gpu_index=0,
                 metrics=metrics,
+                log=log,
             )
             best_val_acc = trainer.train(dl_train, dl_cv)["accuracy"]
             if log:
@@ -164,11 +166,11 @@ if __name__ == "__main__":
     # )
 
     main(
-        batch_size=8,
-        epochs=3,
+        batch_size=16,
+        epochs=20,
         multi_label=True,
-        call_tqdm=False,
+        call_tqdm=True,
         metrics=metrics,
         model_type="roberta-base",
-        log=False,
+        log=True,
     )

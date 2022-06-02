@@ -16,7 +16,8 @@ from sdg_clf.trainer import SDGTrainer
 import sdg_clf.tweet_dataset
 from sdg_clf.model import get_model
 import torchmetrics
-import sdg_clf.utils
+from sdg_clf import utils
+from api_key import key
 
 
 def main(
@@ -51,7 +52,7 @@ def main(
 
     # Setup W and B project log
     if log:
-        os.environ["WANDB_API_KEY"] = "bf4a3866ef6d0f0c18db1a02e1a49b8c6a71c4d8"
+        os.environ["WANDB_API_KEY"] = key
         wandb.init(project="sdg_clf", entity="pydqn")
         wandb.config = {
             "epochs": epochs,

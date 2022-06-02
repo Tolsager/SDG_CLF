@@ -161,7 +161,7 @@ def create_processed_dataset(
     dataset_dict.save_to_disk(save_path)
 
 
-def get_dataset(tokenizer_type: str, path_csv: str = "data/raw/allSDGtweets.csv"):
+def get_dataset(tokenizer_type: str, path_csv: str = "data/raw/allSDGtweets.csv", nrows: int = None):
     """either loads the processed dataset if it exists and otherwise
     creates the dataset and saves it to disk.
 
@@ -174,7 +174,7 @@ def get_dataset(tokenizer_type: str, path_csv: str = "data/raw/allSDGtweets.csv"
     """
     path_ds = f"data/processed/{tokenizer_type}"
     if not os.path.exists(path_ds):
-        create_processed_dataset(path_csv, tokenizer_type=tokenizer_type)
+        create_processed_dataset(path_csv, tokenizer_type=tokenizer_type, nrows=nrows)
     ds = datasets.load_from_disk(path_ds)
     return ds
 

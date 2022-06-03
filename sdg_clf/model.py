@@ -27,3 +27,18 @@ def get_model(
         pretrained_path, num_labels=num_labels
     )
     return model
+
+
+"""
+Make new model inheriting from AutoModelForSequenceClassification
+model.forward_scopus(input_ids):
+    split input ids into chunks
+    prepend chunk with [CLS]
+    append chunk with [EOS]
+    pad chunk
+
+    for every chunk:
+        preds.append(model(chunk))
+    
+    combine prediction and output final predictions
+"""

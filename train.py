@@ -27,7 +27,7 @@ def main(
     epochs: int = 2,
     multi_label: bool = False,
     call_tqdm: bool = True,
-    nrows: int = None,
+    sample_data: bool = False,
     folds: int = False,
     metrics: dict = None,
     seed: int = 0,
@@ -68,7 +68,7 @@ def main(
     save_path += f"/{model_type}"
 
     # get the dataset dict with splits
-    ds_dict = get_dataset(tokenizer_type=model_type)
+    ds_dict = get_dataset(tokenizer_type=model_type, sample_data=sample_data)
 
     # convert the model input for every split to tensors
     for ds in ds_dict.values():
@@ -168,8 +168,9 @@ if __name__ == "__main__":
         batch_size=8,
         epochs=3,
         multi_label=True,
-        call_tqdm=False,
+        call_tqdm=True,
         metrics=metrics,
         model_type="roberta-base",
         log=False,
+        sample_data=True
     )

@@ -3,6 +3,7 @@ import datasets
 import transformers
 import os
 import re
+import numpy as np
 
 
 def remove_with_regex(sample: dict, pattern: re.Pattern = None, textname: str = "text"):
@@ -234,7 +235,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
         for split in ds_dict_base.keys():
             ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
             if sample_data:
-                ds_dict_tokens[split] = ds_dict_tokens[split][:10]
+                ds_dict_tokens[split] = ds_dict_tokens[split].select(np.arange(20))
         return ds_dict_tokens
 
     # else create dataset
@@ -257,8 +258,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
     for split in ds_dict_base.keys():
         ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
         if sample_data:
-            ds_dict_tokens[split] = ds_dict_tokens[split][:10]
-
+            ds_dict_tokens[split] = ds_dict_tokens[split].select(np.arange(20))
     return ds_dict_tokens
 
 

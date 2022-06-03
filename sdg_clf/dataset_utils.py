@@ -104,10 +104,17 @@ def preprocess_dataset(
     if not multi_label:
         ds = ds.filter(lambda sample: sample["nclasses"] == 1)
 
-    # remove unused columns
+    # remove non-english text
+    if tweet:
+        ds = ds.filter(lambda sample: sample["lang"] == "en")
+    ds = ds.map(
+        preprocess_sample, num_proc=6, fn_kwargs={"tweet": tweet}
+    )
+
+    # remove redundant columns
     if tweet:
         ds = ds.remove_columns(
-            ["Unnamed: 0", "id", "created_at", "category"]
+            ["Unnamed: 0", "id", "created_at", "category", "__index_level_0__", "lang"] + [f"#sdg{i}" for i in range(1, 18)]
         )
     else:
         # remove unused columns
@@ -121,6 +128,7 @@ def preprocess_dataset(
                 "Index.Keywords",
                 "EID",
                 "text",
+<<<<<<< HEAD
                 "__index_level_0__"
             ]
         )
@@ -152,17 +160,11 @@ def preprocess_dataset(
     if tweet:
         ds = ds.remove_columns(
             [f"#sdg{i}" for i in range(1, 18)] + ["lang"] + ["__index_level_0__"]
+=======
+                "__index_level_0__",
+            ] + [f"sdg{i}" for i in range(1, 18)]
+>>>>>>> a9d4f5d68f523869a4ebcef32e897a9f36966276
         )
-    else:
-        ds = ds.remove_columns(
-            [f"sdg{i}" for i in range(1, 18)]
-        )
-
-    # if split:
-    #     ds = ds.shuffle(seed=seed)
-    #
-    #     # ds = ds.cast_column("label", datasets.Sequence(datasets.Value("float32")))
-    #     ds = ds.train_test_split(test_size=0.1)
     return ds
 
 
@@ -193,7 +195,7 @@ def create_base_dataset(tweet: bool = True, nrows: int = None):
         path = "data/raw/scopus_ready_to_use.csv"
 
     ds = preprocess_dataset(file=path, nrows=nrows, tweet=tweet)
-    ds_dict = split_dataset(ds)
+    ds_dict = split_dataset(ds, tweet=tweet)
     save_path = "data/processed"
     if tweet:
         save_path += "/tweets/base"
@@ -212,7 +214,7 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
 
     for split in ds_dict.keys():
         if tweet:
-            ds_dict[split] = ds_dict[split].map(lambda samples: tokenizer(samples[textname], padding=True, max_length=max_length, truncation=True), batched=True, num_proc=1)
+            ds_dict[split] = ds_dict[split].map(lambda samples: tokenizer(samples[textname], padding="max_length", max_length=max_length, truncation=True), batched=True, num_proc=1)
         else:
             ds_dict[split] = ds_dict[split].map(
                 lambda samples: tokenizer(samples[textname]), num_proc=1)

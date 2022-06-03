@@ -63,7 +63,7 @@ def get_model(
     Returns:
         _type_: _description_
     """
-    model = Model(path=pretrained_path, n_layers=n_layers, n_labels=num_labels, hidden_size=hidden_size, batch_size, transformer_hidden_size=transformer_hidden_size)
+    model = Model(path=pretrained_path, n_layers=n_layers, n_labels=num_labels, hidden_size=hidden_size, batch_size=batch_size, transformer_hidden_size=transformer_hidden_size)
     return model
 
 

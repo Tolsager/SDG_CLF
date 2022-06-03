@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import os
 
-
 def seed_everything(seed_value: int):
     """Sets seed for random, numpy, torch, and os to run controlled experiments
 

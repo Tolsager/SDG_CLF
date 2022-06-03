@@ -230,12 +230,24 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
             ds_dict_tokens[split] = ds_dict_tokens[split].select(np.arange(20))
     return ds_dict_tokens
 
+def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data="data"):
+    path_ds = os.path.join(path_data, "processed", "tweets" if tweet else "scopus")
+    path_ds_dict_tokens = os.path.join(path_ds, tokenizer_type)
+    ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
+
+    path_ds_dict_base = os.path.join(path_ds, "base")
+    ds_dict_base = datasets.load_from_disk(path_ds_dict_base)
+
+    for split in ds_dict_base.keys():
+        ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
+
+    return ds_dict_tokens
 
 
 if __name__ == "__main__":
     os.chdir("..")
     # create_base_dataset(tweet=True)
-    # create_base_dataset()
+    # create_base_dataset(tweet=False)
     # ds_dict = datasets.load_from_disk("data/processed/tweets/base")
     # print()
     # tokenizer = transformers.AutoTokenizer.from_pretrained("roberta-base")
@@ -244,6 +256,12 @@ if __name__ == "__main__":
     # get_dataset("roberta-base")
     # get_dataset("roberta-base")
     # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
-    ds_dict = get_dataset("roberta-base", sample_data=False, tweet=True)
-    # ds_dict = datasets.load_from_disk("data/processed/tweets/base")
+    # ds_dict_scopus = get_dataset("roberta-base", sample_data=False, tweet=False)
+    # ds_dict_tweets = get_dataset("roberta-base", tweet=True)
+
+    # ds_dict_tweets = datasets.load_from_disk("data/processed/tweets/base")
+    # ds_dict_scopus = datasets.load_from_disk("data/processed/scopus/base")
+    # ds_dict_tweets = datasets.load_from_disk("data/processed/tweets/roberta-base")
+    # ds_dict_scopus = datasets.load_from_disk("data/processed/scopus/roberta-base")
+    ds_dict = load_ds_dict("roberta-base")
     print()

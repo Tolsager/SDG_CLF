@@ -9,7 +9,7 @@ from tweet_dataset import preprocess
 
 
 def load_abstracts(
-    file: str = "data/raw/scopus_ready_to_use.csv",
+    file: str = "../data/raw/scopus_ready_to_use.csv",
     seed: int = 0,
     nrows: int = None,
     multi_label: bool = True,

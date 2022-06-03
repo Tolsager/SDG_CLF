@@ -188,6 +188,8 @@ if __name__ == "__main__":
     # print(type(tweet_dataset['train'][0]["input_ids"]))
     # create_processed_dataset("data/allSDGtweets.csv", nrows=20)
     # ds = datasets.load_from_disk("sodif")
-    ds_dict = get_dataset("roberta-base")
+    # ds_dict = get_dataset("roberta-base")
+    path_ds = f"../data/processed/roberta-base"
+    ds = datasets.load_from_disk(path_ds)
     print()
     # print

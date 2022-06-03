@@ -191,7 +191,7 @@ def create_base_dataset(tweet: bool = True, nrows: int = None):
     else:
         path = "data/raw/scopus_ready_to_use.csv"
 
-    ds = preprocess_dataset(file=path, nrows=nrows, tweet=True)
+    ds = preprocess_dataset(file=path, nrows=nrows, tweet=tweet)
     ds_dict = split_dataset(ds)
     save_path = "data/processed"
     if tweet:

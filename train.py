@@ -13,11 +13,12 @@ import numpy as np
 
 # our scripts
 from sdg_clf.trainer import SDGTrainer
-from sdg_clf import tweet_dataset
+import sdg_clf.tweet_dataset
 from sdg_clf.model import get_model
 import torchmetrics
 from sdg_clf import utils
 from api_key import key
+from sdg_clf.dataset_utils import get_dataset
 
 
 def main(
@@ -26,7 +27,7 @@ def main(
     epochs: int = 2,
     multi_label: bool = False,
     call_tqdm: bool = True,
-    nrows: int = None,
+    sample_data: bool = False,
     folds: int = False,
     metrics: dict = None,
     seed: int = 0,
@@ -67,7 +68,7 @@ def main(
     save_path += f"/{model_type}"
 
     # get the dataset dict with splits
-    ds_dict = tweet_dataset.get_dataset(tokenizer_type=model_type, nrows=nrows)
+    ds_dict = get_dataset(tokenizer_type=model_type, sample_data=sample_data)
 
     # convert the model input for every split to tensors
     for ds in ds_dict.values():
@@ -172,5 +173,6 @@ if __name__ == "__main__":
         call_tqdm=True,
         metrics=metrics,
         model_type="roberta-base",
-        log=True,
+        log=False,
+        sample_data=True
     )

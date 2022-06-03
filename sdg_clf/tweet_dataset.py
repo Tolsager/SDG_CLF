@@ -7,7 +7,7 @@ import re
 import datasets
 
 
-def remove_with_regex(sample: dict, pattern: re.Pattern = None):
+def remove_with_regex(sample: dict, pattern: re.Pattern = None, textname: str = "text"):
     """Deletes every match with the "pattern".
     Sample must have a 'text' feature.
     Is used for the 'map' dataset method
@@ -20,36 +20,52 @@ def remove_with_regex(sample: dict, pattern: re.Pattern = None):
         sample_processed: sample with all regex matches removed
     """
 
-    sample["text"] = pattern.subn("", sample["text"])[0]
+    sample[textname] = pattern.subn("", sample[textname])[0]
     return sample
 
 
-def preprocess(sample: dict, tokenizer: transformers.PreTrainedTokenizer):
+def preprocess(
+    sample: dict,
+    tokenizer: transformers.PreTrainedTokenizer,
+    tweet: bool = True,
+    textname: str = "text",
+):
     """preprocess a sample of the dataset
 
     Args:
         sample (dict): dataset sample
         tokenizer (transformers.PreTrainedTokenizer): a pretrained tokenizer
+        tweet (bool): whether the data are tweets or abstracts
+        textname (str): name of text column in
 
     Returns:
         dict: the preprocessed sample
     """
-    sample["text"] = sample["text"].lower()
+    sample[textname] = sample[textname].lower()
 
     # remove labels from the tweet
-    sdg_prog = re.compile(r"#(sdg)s?(\s+)?(\d+)?")
-    sample = remove_with_regex(sample, pattern=sdg_prog)
+    sdg_prog1 = re.compile(r"#(sdg)s?(\s+)?(\d+)?")
+    sample = remove_with_regex(sample, pattern=sdg_prog1, textname=textname)
+    sdg_prog2 = re.compile(r"(sdg)s?(\s?)(\d+)?")
+    sample = remove_with_regex(sample, pattern=sdg_prog2, textname=textname)
+    sdg_prog3 = re.compile(r"(sustainable development goals?\s?)(\d+)?")
+    sample = remove_with_regex(sample, pattern=sdg_prog3, textname=textname)
+    sdg_prog4 = re.compile(r"(© \d\d(\d?)\d)?\s")
+    sample = remove_with_regex(sample, pattern=sdg_prog4, textname=textname)
+    sdg_prog5 = re.compile(r"(elsevier\sLtd)")
+    sample = remove_with_regex(sample, pattern=sdg_prog5, textname=textname)
 
     # remove ekstra whitespace
-    sample["text"] = " ".join(sample["text"].split())
+    sample[textname] = " ".join(sample[textname].split())
 
-    # create a label vector
-    label = [int(sample[f"#sdg{i}"]) for i in range(1, 18)]
-    sample["label"] = label
+    # create a label vector (only applicable for tweets)
+    if tweet:
+        label = [int(sample[f"#sdg{i}"]) for i in range(1, 18)]
+        sample["label"] = label
 
     # tokenize text
     encoding = tokenizer(
-        sample["text"], max_length=260, padding="max_length", truncation=True
+        sample[textname], max_length=260, padding="max_length", truncation=True
     )
     sample["input_ids"] = encoding.input_ids
     sample["attention_mask"] = encoding.attention_mask
@@ -62,6 +78,7 @@ def load_dataset(
     nrows: int = None,
     multi_label: bool = True,
     tokenizer_type: str = "roberta-base",
+    tweet: bool = True,
     split: bool = True,
 ):
     """Loads the tweet CSV into a huggingface dataset and apply the preprocessing
@@ -69,6 +86,7 @@ def load_dataset(
     Args:
         file (str, optional): path to csv file. Defaults to "data/raw/allSDGtweets.csv".
         seed (int, optional): seed used for shuffling. Defaults to 0.
+        tweet (bool): whether the data are tweets or abstracts
 
     Returns:
         datasets.Dataset: a preprocessed dataset
@@ -170,6 +188,8 @@ if __name__ == "__main__":
     # print(type(tweet_dataset['train'][0]["input_ids"]))
     # create_processed_dataset("data/allSDGtweets.csv", nrows=20)
     # ds = datasets.load_from_disk("sodif")
-    ds_dict = get_dataset("roberta-base")
+    # ds_dict = get_dataset("roberta-base")
+    path_ds = f"../data/processed/roberta-base"
+    ds = datasets.load_from_disk(path_ds)
     print()
     # print

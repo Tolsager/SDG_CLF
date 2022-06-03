@@ -108,6 +108,7 @@ def main(
         metrics=metrics,
         log=log,
         save_model=save_model,
+        save_metric="accuracy"
     )
     trainer.train(dl_train, dl_cv)
 
@@ -154,6 +155,6 @@ if __name__ == "__main__":
         metrics=metrics,
         model_type="roberta-base",
         log=False,
-        sample_data=True,
+        sample_data=False,
         save_model=True,
     )

@@ -180,7 +180,7 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
 
     for split in ds_dict.keys():
         if tweet:
-            ds_dict[split] = ds_dict[split].map(lambda samples: tokenizer(samples[textname], padding=True, max_length=max_length, truncation=True), batched=True, num_proc=1)
+            ds_dict[split] = ds_dict[split].map(lambda samples: tokenizer(samples[textname], padding="max_length", max_length=max_length, truncation=True), batched=True, num_proc=1)
         else:
             ds_dict[split] = ds_dict[split].map(
                 lambda samples: tokenizer(samples[textname]), num_proc=1)
@@ -244,6 +244,6 @@ if __name__ == "__main__":
     # get_dataset("roberta-base")
     # get_dataset("roberta-base")
     # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
-    # ds_dict = get_dataset("roberta-base", sample_data=True, tweet=False)
-    ds_dict = datasets.load_from_disk("data/processed/tweets/base")
+    ds_dict = get_dataset("roberta-base", sample_data=False, tweet=True)
+    # ds_dict = datasets.load_from_disk("data/processed/tweets/base")
     print()

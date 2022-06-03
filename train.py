@@ -96,57 +96,18 @@ def main(
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
-    if not folds:
-        dl_train = DataLoader(ds_dict["train"], batch_size=batch_size)
-        dl_cv = DataLoader(ds_dict["validation"], batch_size=batch_size)
-        trainer = SDGTrainer(
-            model=model,
-            epochs=epochs,
-            criterion=criterion,
-            call_tqdm=call_tqdm,
-            gpu_index=0,
-            metrics=metrics,
-            log=log,
-        )
-        best_val_acc = trainer.train(dl_train, dl_cv)
-    else:
-        # code for folds which will not be used
-        val_accs = []
-
-        # Define k-fold cross validation using folds int
-        kf = KFold(n_splits=folds)
-        for i, (train_index, cv_index) in enumerate(
-            kf.split([*range(ds["train"].num_rows)])
-        ):
-            print(f"Validating on fold {i}\n")
-
-            # Load train and validation data based on current fold
-            ds_train = ds["train"].select(train_index)
-            ds_cv = ds["train"].select(cv_index)
-            dl_train = DataLoader(ds_train, batch_size=batch_size)
-            dl_cv = DataLoader(ds_cv, batch_size=batch_size)
-
-            # Reset weights in model
-            model.apply(utils.reset_weights)
-
-            # Call instance of SDGTrainer and evaluate on cross validation set
-            trainer = SDGTrainer(
-                model=model,
-                epochs=epochs,
-                criterion=criterion,
-                call_tqdm=call_tqdm,
-                gpu_index=0,
-                metrics=metrics,
-                log=log,
-            )
-            best_val_acc = trainer.train(dl_train, dl_cv)["accuracy"]
-            if log:
-                wandb.log({"fold": i, "best_val_acc": best_val_acc})
-
-            # Collect accuracies from current fold and store the average accuracy from all folds after completion
-            val_accs.append(best_val_acc)
-        if log:
-            wandb.log({"avg_val_acc": np.mean(val_accs)})
+    dl_train = DataLoader(ds_dict["train"], batch_size=batch_size)
+    dl_cv = DataLoader(ds_dict["validation"], batch_size=batch_size)
+    trainer = SDGTrainer(
+        model=model,
+        epochs=epochs,
+        criterion=criterion,
+        call_tqdm=call_tqdm,
+        gpu_index=0,
+        metrics=metrics,
+        log=log,
+    )
+    trainer.train(dl_train, dl_cv)
 
 
 if __name__ == "__main__":
@@ -185,7 +146,7 @@ if __name__ == "__main__":
 
     main(
         batch_size=16,
-        epochs=20,
+        epochs=2,
         multi_label=multilabel,
         call_tqdm=True,
         metrics=metrics,

@@ -9,10 +9,10 @@ from tqdm import tqdm, trange
 
 from datetime import datetime
 import datasets
-from .tweet_dataset import get_dataset
+#from .tweet_dataset import get_dataset
 import torchmetrics
 import transformers
-from .model import get_model
+from model import get_model
 import wandb
 
 
@@ -306,12 +306,13 @@ class SDGTrainer(Trainer):
         # Take input ids of vearieing length
         # Split into max 260 length
         #
-        pass
+        print()
         # Predict på alle samples i dataloaderen
 
 
 if __name__ == "__main__":
-    dataset = tweet_dataset.preprocess_dataset(nrows=4000)
+    #dataset = tweet_dataset.preprocess_dataset(nrows=4000)
+    dataset = datasets.load_from_disk("../data/processed/scopus/roberta-base")
     dataset_train = dataset["train"]
     dataset_val = dataset["test"]
     dataset_train.set_format(
@@ -333,7 +334,9 @@ if __name__ == "__main__":
     trainer = SDGTrainer(
         metrics=metrics, epochs=3, model=sdg_model, criterion=criterion
     )
-    best_val_metrics = trainer.train(
+    trainer.long_text_step(dataset_val[0])
+
+    """best_val_metrics = trainer.train(
         train_dataloader=dataloader_train, val_dataloader=dataloader_val
     )
-    print(best_val_metrics)
+    print(best_val_metrics)"""

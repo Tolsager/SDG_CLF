@@ -128,11 +128,40 @@ def preprocess_dataset(
                 "Index.Keywords",
                 "EID",
                 "text",
-                "__index_level_0__",
-            ] + [f"sdg{i}" for i in range(1, 18)]
+                "__index_level_0__"
+            ]
         )
-    return ds
+    # print(
+    #     f"Length of dataset before removing non-english tweets: {ds.num_rows}"
+    # )
 
+    # remove non-english text
+    if tweet:
+        ds = ds.filter(lambda sample: sample["lang"] == "en")
+    # print(
+    #     f"Length of dataset after removing non-english tweets: {ds.num_rows}"
+    # )
+
+    # apply the preprocessing function to every sample
+    # tokenizer_path = "tokenizers/" + tokenizer_type
+    # if not os.path.exists(tokenizer_path):
+    #     tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
+    #     os.makedirs(tokenizer_path)
+    #     tokenizer.save_pretrained(tokenizer_path)
+    # else:
+    #     tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
+    ds = ds.map(
+        preprocess_sample, num_proc=6, fn_kwargs={"tweet": tweet}
+        # preprocess_sample, num_proc=1, fn_kwargs={"tweet": tweet}
+    )
+
+    # remove redundant columns
+    if tweet:
+        ds = ds.remove_columns(
+            [f"#sdg{i}" for i in range(1, 18)] + ["lang"])
+    else:
+        ds = ds.remove_columns([f"sdg{i}" for i in range(1, 18)])
+    return ds
 
 def split_dataset(
         ds: datasets.Dataset, tweet: bool = True
@@ -256,12 +285,8 @@ if __name__ == "__main__":
     # get_dataset("roberta-base")
     # get_dataset("roberta-base")
     # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
-    # ds_dict_scopus = get_dataset("roberta-base", sample_data=False, tweet=False)
-    # ds_dict_tweets = get_dataset("roberta-base", tweet=True)
-
-    # ds_dict_tweets = datasets.load_from_disk("data/processed/tweets/base")
-    # ds_dict_scopus = datasets.load_from_disk("data/processed/scopus/base")
-    # ds_dict_tweets = datasets.load_from_disk("data/processed/tweets/roberta-base")
-    # ds_dict_scopus = datasets.load_from_disk("data/processed/scopus/roberta-base")
-    ds_dict = load_ds_dict("roberta-base")
+    #ds_dict = get_dataset("roberta-base", sample_data=True)
+    #print()
+    # get_dataset("roberta-base",tweet=False)
+    #ds_dict = datasets.load_from_disk("data/processed/scopus/base")
     print()

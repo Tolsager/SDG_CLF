@@ -65,3 +65,18 @@ def get_model(
     """
     model = Model(path=pretrained_path, n_layers=n_layers, n_labels=num_labels, hidden_size=hidden_size, batch_size=batch_size, transformer_hidden_size=transformer_hidden_size)
     return model
+
+
+"""
+Make new model inheriting from AutoModelForSequenceClassification
+model.forward_scopus(input_ids):
+    split input ids into chunks
+    prepend chunk with [CLS]
+    append chunk with [EOS]
+    pad chunk
+
+    for every chunk:
+        preds.append(model(chunk))
+    
+    combine prediction and output final predictions
+"""

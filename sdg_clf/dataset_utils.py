@@ -142,7 +142,7 @@ def preprocess_dataset(
     # else:
     #     tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
     ds = ds.map(
-        preprocess_sample, num_proc=1, fn_kwargs={"tweet": tweet}
+        preprocess_sample, num_proc=6, fn_kwargs={"tweet": tweet}
         # preprocess_sample, num_proc=1, fn_kwargs={"tweet": tweet}
     )
 
@@ -220,28 +220,25 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
 
 def get_dataset(tokenizer_type: str, tweet: bool = True, nrows: int = None, max_length: int = 260):
     # load tokenized dataset if exists
+    path_data = "data/processed"
     if tweet:
-        path_ds_dict = f"data/processed/tweets/{tokenizer_type}"
-        textname = "text"
+        path_data += "/tweets"
     else:
-        path_ds_dict = f"data/processed/scopus/{tokenizer_type}"
-        textname = "Abstract"
-    if os.path.exists(path_ds_dict):
-        if nrows is not None:
-            ds_dict = datasets.load_from_disk(path_ds_dict)
-        else:
-            ds_dict = datasets.load_from_disk(path_ds_dict)
-        return ds_dict
+        path_data += "/scopus"
+    path_base = path_data + "/base"
+
+    path_ds_dict_tokens = path_data + f"/{tokenizer_type}"
+    if os.path.exists(path_ds_dict_tokens):
+        ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
+        ds_dict_base = datasets.load_from_disk(path_base)
+        for split in ds_dict_base.keys():
+            ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
+        return ds_dict_tokens
 
     # else create dataset
-    if tweet:
-        path_base = "data/processed/tweets/base"
-    else:
-        path_base = "data/processed/scopus/base"
-
     if not os.path.exists(path_base):
         create_base_dataset(tweet=tweet)
-    ds_dict = datasets.load_from_disk(path_base)
+    ds_dict_base = datasets.load_from_disk(path_base)
 
     tokenizer_path = "tokenizers/" + tokenizer_type
     if not os.path.exists(tokenizer_path):
@@ -252,45 +249,27 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, nrows: int = None, max_
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
 
     ds_dict_tokens = tokenize_dataset(tokenizer, tweet=tweet, max_length=max_length)
+    path_save = path_data + f"/{tokenizer_type}"
+    ds_dict_tokens.save_to_disk(path_save)
 
-    for split in ds_dict.keys():
-        df = ds_dict[split].to_pandas()
-        for column_name in ds_dict_tokens["train"].features.keys():
-            df[column_name] = ds_dict_tokens[split][column_name]
-        ds_dict[split] = datasets.Dataset.from_pandas(df)
-        # ds_dict[split] = ds_dict[split].add_column(column_name, ds_dict_tokens[split][column_name])
-        ds_dict[split] = datasets.concatenate_datasets([ds_dict[split], ds_dict_tokens[split]], axis=1)
+    for split in ds_dict_base.keys():
+        ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
 
-    if tweet:
-        ds_dict.save_to_disk(f"data/processed/tweets/{tokenizer_type}")
-    else:
-        ds_dict.save_to_disk(f"data/processed/scopus/{tokenizer_type}")
-
-    return ds_dict
+    return ds_dict_tokens
 
 
-# def get_dataset(tokenizer_type: str, path_csv: str = "data/raw/allSDGtweets.csv", nrows: int = None):
-#     """either loads the processed dataset if it exists and otherwise
-#     creates the dataset and saves it to disk.
-#
-#     Args:
-#         tokenizer_type (str): a huggingface tokenizer type such as "roberta-base"
-#         path_csv (str, optional): path to raw tweet csv. Is only used if there is no processed dataset. Defaults to "data/raw/allSDGtweets.csv".
-#
-#     Returns:
-#         datasets.DatasetDict: the processed dataset
-#     """
-#     path_ds = f"data/processed/{tokenizer_type}"
-#     if not os.path.exists(path_ds):
-#         split_dataset(path_csv, tokenizer_type=tokenizer_type, nrows=nrows)
-#     ds = datasets.load_from_disk(path_ds)
-#     return ds
 
 if __name__ == "__main__":
     os.chdir("..")
     # create_base_dataset(tweet=True, nrows=20)
-    # ds = datasets.load_from_disk("data/processed/tweets/base")
-    # tokenizer = transformers.AutoTokenizer.from_pretrained("roberta-base")
-    # ds1 = tokenize_dataset(tokenizer)
+    # create_base_dataset()
+    # ds_dict = datasets.load_from_disk("data/processed/tweets/base")
     # print()
-    get_dataset("roberta-base")
+    # tokenizer = transformers.AutoTokenizer.from_pretrained("roberta-base")
+    # ds_dict_tokens = tokenize_dataset(tokenizer)
+    # print()
+    # get_dataset("roberta-base")
+    # get_dataset("roberta-base")
+    # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
+    ds_dict = get_dataset("roberta-base")
+    print()

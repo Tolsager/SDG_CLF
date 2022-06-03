@@ -18,6 +18,7 @@ from sdg_clf.model import get_model
 import torchmetrics
 from sdg_clf import utils
 from api_key import key
+from sdg_clf.dataset_utils import get_dataset
 
 
 def main(
@@ -67,7 +68,7 @@ def main(
     save_path += f"/{model_type}"
 
     # get the dataset dict with splits
-    ds_dict = tweet_dataset.get_dataset(tokenizer_type=model_type)
+    ds_dict = get_dataset(tokenizer_type=model_type)
 
     # convert the model input for every split to tensors
     for ds in ds_dict.values():

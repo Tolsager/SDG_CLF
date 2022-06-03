@@ -192,7 +192,7 @@ def create_base_dataset(tweet: bool = True, nrows: int = None):
         path = "data/raw/scopus_ready_to_use.csv"
 
     ds = preprocess_dataset(file=path, nrows=nrows, tweet=tweet)
-    ds_dict = split_dataset(ds)
+    ds_dict = split_dataset(ds, tweet=tweet)
     save_path = "data/processed"
     if tweet:
         save_path += "/tweets/base"
@@ -265,7 +265,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
 
 if __name__ == "__main__":
     os.chdir("..")
-    create_base_dataset(tweet=False)
+    # create_base_dataset(tweet=False)
     # create_base_dataset()
     # ds_dict = datasets.load_from_disk("data/processed/tweets/base")
     # print()
@@ -275,5 +275,5 @@ if __name__ == "__main__":
     # get_dataset("roberta-base")
     # get_dataset("roberta-base")
     # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
-    #ds_dict = get_dataset("roberta-base", sample_data=True)
+    ds_dict = get_dataset("roberta-base", sample_data=True, tweet=False)
     #print()

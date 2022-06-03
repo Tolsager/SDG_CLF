@@ -212,12 +212,12 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
             ds_dict[split] = ds_dict[split].map(lambda samples: tokenizer(samples[textname], padding="max_length", max_length=max_length, truncation=True), batched=True, num_proc=1)
         else:
             ds_dict[split] = ds_dict[split].map(
-                lambda samples: tokenizer(samples[textname]), num_proc=1)
+                lambda samples: tokenizer(samples[textname], add_special_tokens=False, truncation=False), num_proc=1)
         ds_dict[split] = ds_dict[split].remove_columns([textname, "nclasses", "label"])
 
     return ds_dict
 
-def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260):
+def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260, overwrite: bool = False):
     # load tokenized dataset if exists
     path_data = "data/processed"
     if tweet:
@@ -227,7 +227,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
     path_base = path_data + "/base"
 
     path_ds_dict_tokens = path_data + f"/{tokenizer_type}"
-    if os.path.exists(path_ds_dict_tokens):
+    if os.path.exists(path_ds_dict_tokens) and not overwrite:
         ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
         ds_dict_base = datasets.load_from_disk(path_base)
         for split in ds_dict_base.keys():
@@ -287,6 +287,6 @@ if __name__ == "__main__":
     # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
     #ds_dict = get_dataset("roberta-base", sample_data=True)
     #print()
-    # get_dataset("roberta-base",tweet=False)
-    #ds_dict = datasets.load_from_disk("data/processed/scopus/base")
+    get_dataset("roberta-base",tweet=False)
+    # ds_dict = datasets.load_from_disk("data/processed/scopus/roberta-base")
     print()

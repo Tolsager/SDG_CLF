@@ -301,6 +301,15 @@ class SDGTrainer(Trainer):
                 else step_outputs["prediction"],
             )
 
+    def long_text_step(self, sample):
+
+        # Take input ids of vearieing length
+        # Split into max 260 length
+        #
+        pass
+        # Predict på alle samples i dataloaderen
+
+
 if __name__ == "__main__":
     dataset = tweet_dataset.preprocess_dataset(nrows=4000)
     dataset_train = dataset["train"]

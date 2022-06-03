@@ -302,7 +302,7 @@ class SDGTrainer(Trainer):
             )
 
 if __name__ == "__main__":
-    dataset = tweet_dataset.load_dataset(nrows=4000)
+    dataset = tweet_dataset.preprocess_dataset(nrows=4000)
     dataset_train = dataset["train"]
     dataset_val = dataset["test"]
     dataset_train.set_format(

@@ -47,7 +47,7 @@ class Model(nn.Module):
 
 
 def get_model(
-    num_labels=17,
+    num_labels: int =17,
     pretrained_path: str = None,
     n_layers: int = 3,
     hidden_size: int = 768,
@@ -63,5 +63,5 @@ def get_model(
     Returns:
         _type_: _description_
     """
-    model = Model(path=pretrained_path, n_layers=n_layers, n_labels=num_labels, hidden_size=hidden_size, batch_size, transformer_hidden_size=transformer_hidden_size)
+    model = Model(path=pretrained_path, n_layers=n_layers, n_labels=num_labels, hidden_size=hidden_size, batch_size=batch_size, transformer_hidden_size=transformer_hidden_size)
     return model

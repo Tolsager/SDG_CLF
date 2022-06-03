@@ -218,7 +218,7 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
 
     return ds_dict
 
-def get_dataset(tokenizer_type: str, tweet: bool = True, nrows: int = None, max_length: int = 260):
+def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260):
     # load tokenized dataset if exists
     path_data = "data/processed"
     if tweet:
@@ -233,6 +233,8 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, nrows: int = None, max_
         ds_dict_base = datasets.load_from_disk(path_base)
         for split in ds_dict_base.keys():
             ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
+            if sample_data:
+                ds_dict_tokens[split] = ds_dict_tokens[split][:10]
         return ds_dict_tokens
 
     # else create dataset
@@ -254,6 +256,8 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, nrows: int = None, max_
 
     for split in ds_dict_base.keys():
         ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
+        if sample_data:
+            ds_dict_tokens[split] = ds_dict_tokens[split][:10]
 
     return ds_dict_tokens
 
@@ -271,5 +275,5 @@ if __name__ == "__main__":
     # get_dataset("roberta-base")
     # get_dataset("roberta-base")
     # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
-    ds_dict = get_dataset("roberta-base")
+    ds_dict = get_dataset("roberta-base", sample_data=True)
     print()

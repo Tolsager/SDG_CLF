@@ -349,7 +349,9 @@ if __name__ == "__main__":
     test = ds_dict["test"]
     # sample = test["Abstract"][0]
     tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
-    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta_base")
+    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta_base", num_labels=17)
+    sdg_model.cuda()
+    sdg_model.load_state_dict(torch.load("../pretrained_models/best_model_0603141006.pt"))
     # metrics = {
     #     "accuracy": {
     #         "goal": "maximize",
@@ -357,34 +359,35 @@ if __name__ == "__main__":
     #     }
     # }
     multilabel = True
-    metrics = {
-        "accuracy": {
+    for i in np.linspace(0, 1, 9):
+        metrics = {
+            "accuracy": {
+                "goal": "maximize",
+                "metric": torchmetrics.Accuracy(threshold=i,subset_accuracy=True, multiclass=not multilabel),
+            },
+            "auroc": {
             "goal": "maximize",
-            "metric": torchmetrics.Accuracy(subset_accuracy=True, multiclass=not multilabel),
-        },
-        "auroc": {
-        "goal": "maximize",
-        "metric": torchmetrics.AUROC(num_classes=17),
-        },
-        "precision": {
-            "goal": "maximize",
-            "metric": torchmetrics.Precision(num_classes=17, multiclass=not multilabel),
-        },
-        "recall": {
-            "goal": "maximize",
-            "metric": torchmetrics.Recall(num_classes=17, multiclass=not multilabel),
-        },
-        "f1": {
-            "goal": "maximize",
-            "metric": torchmetrics.F1Score(num_classes=17, multiclass=not multilabel),
-        },
-    }
-    trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model, metrics=metrics)
-    # model_inputs = trainer.prepare_long_text_input(sample)
-    # pred =
-    test.set_format("pt", columns=["input_ids", "label"])
-    dl = torch.utils.data.DataLoader(test)
-    trainer.test_long_text(dl)
+            "metric": torchmetrics.AUROC(num_classes=17),
+            },
+            "precision": {
+                "goal": "maximize",
+                "metric": torchmetrics.Precision(threshold=i,num_classes=17, multiclass=not multilabel),
+            },
+            "recall": {
+                "goal": "maximize",
+                "metric": torchmetrics.Recall(threshold=i,num_classes=17, multiclass=not multilabel),
+            },
+            "f1": {
+                "goal": "maximize",
+                "metric": torchmetrics.F1Score(threshold=i,num_classes=17, multiclass=not multilabel),
+            },
+        }
+        trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model, metrics=metrics)
+        # model_inputs = trainer.prepare_long_text_input(sample)
+        # pred =
+        test.set_format("pt", columns=["input_ids", "label"])
+        dl = torch.utils.data.DataLoader(test)
+        trainer.test_long_text(dl)
 
     # dataset = datasets.load_from_disk("../data/processed/scopus/roberta-base")
     # dataset_train = dataset["train"]

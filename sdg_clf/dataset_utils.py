@@ -121,6 +121,7 @@ def preprocess_dataset(
                 "Index.Keywords",
                 "EID",
                 "text",
+                "__index_level_0__"
             ]
         )
     # print(
@@ -265,7 +266,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
 
 if __name__ == "__main__":
     os.chdir("..")
-    create_base_dataset(tweet=False)
+    #create_base_dataset(tweet=False)
     # create_base_dataset()
     # ds_dict = datasets.load_from_disk("data/processed/tweets/base")
     # print()
@@ -277,3 +278,6 @@ if __name__ == "__main__":
     # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
     #ds_dict = get_dataset("roberta-base", sample_data=True)
     #print()
+    get_dataset("roberta-base",tweet=False)
+    #ds_dict = datasets.load_from_disk("data/processed/scopus/base")
+    print()

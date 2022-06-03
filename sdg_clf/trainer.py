@@ -14,7 +14,7 @@ import torchmetrics
 import transformers
 from model import get_model
 import wandb
-
+from utils import chunks
 
 class Trainer:
     def __init__(
@@ -301,13 +301,22 @@ class SDGTrainer(Trainer):
                 else step_outputs["prediction"],
             )
 
-    def long_text_step(self, sample):
+    def long_text_step(self, longtext):
 
-        # Take input ids of vearieing length
+        # Take input ids of varieing length
         # Split into max 260 length
         #
-        print()
-        # Predict på alle samples i dataloaderen
+        splittedtext = {'input_ids':[longtext['input_ids'][x:x + 260] for x in range(0, len(longtext['input_ids']), 260)],
+                        'attention_mask':[longtext['attention_mask'][x:x + 260] for x in range(0, len(longtext['attention_mask']), 260)]}
+        if len(splittedtext['input_ids'][-1]) != 260:
+            pass
+            # Padding to be done here
+
+        labels = []
+        for chunk in splittedtext:
+            labels.append(self.test(xxxx))
+
+        return max(set(labels), key = labels.count)
 
 
 if __name__ == "__main__":

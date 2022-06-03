@@ -6,6 +6,7 @@ pretrained_models/
 .vscode
 wandb
 data
+EDA_graphs
 playground.py
 .idea
 

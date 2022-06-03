@@ -54,12 +54,12 @@ def main(
     # Setup W and B project log
     if log:
         os.environ["WANDB_API_KEY"] = key
-        wandb.init(project="sdg_clf", entity="pydqn")
-        wandb.config = {
+        config = {
             "epochs": epochs,
             "batch_size": batch_size,
             "learning_rate": 3e-5,
         }
+        wandb.init(project="sdg_clf", entity="pydqn", config=config)
 
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)

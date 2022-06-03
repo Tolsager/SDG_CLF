@@ -47,7 +47,7 @@ class Model(nn.Module):
 
 
 def get_model(
-    num_labels=17,
+    num_labels: int =17,
     pretrained_path: str = None,
     n_layers: int = 3,
     hidden_size: int = 768,

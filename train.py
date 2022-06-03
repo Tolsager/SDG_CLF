@@ -2,6 +2,7 @@ import pandas as pd
 import datasets
 import torch
 import os
+import argparse
 
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
@@ -19,6 +20,8 @@ import torchmetrics
 from sdg_clf import utils
 from api_key import key
 from sdg_clf.dataset_utils import get_dataset
+
+
 
 
 def main(
@@ -136,6 +139,13 @@ if __name__ == "__main__":
             "metric": torchmetrics.F1Score(num_classes=17, multiclass=not multilabel),
         },
     }
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--multilabel", help="boolean controlling whether the problem is multiclass or multilabel", action="store_true", default=False)
+    parser.add_argument("-b", "--batchsize", help="number of batches sent to model", type=int, default=8)
+    parser.add_argument("-l", "--log", help="log results to weights and biases", action='store_true', default=False)
+    parser.add_argument("-s", "--save", help="save models during training", action="store_true", default=False)
+    parser.add_argument("-e", "--epochs", help="number of epochs to train model", type=int, default=2)
+    args = parser.parse_args()
     # main(
     #     batch_size=16,
     #     epochs=3,
@@ -147,13 +157,13 @@ if __name__ == "__main__":
     # )
 
     main(
-        batch_size=16,
-        epochs=5,
-        multi_label=multilabel,
+        batch_size=args.batchsize,
+        epochs=args.epochs,
+        multi_label=args.multilabel,
         call_tqdm=True,
         metrics=metrics,
         model_type="roberta-base",
-        log=True,
+        log=args.log,
         sample_data=False,
-        save_model=True,
+        save_model=args.save,
     )

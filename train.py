@@ -33,6 +33,7 @@ def main(
     seed: int = 0,
     model_type: str = "roberta-base",
     log: bool = True,
+    save_model: bool = False,
 ):
     """main() completes multi_label learning loop for one ROBERTA model using either one model order cross-validation to find
     the best hyper parameters. Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
@@ -106,6 +107,7 @@ def main(
         gpu_index=0,
         metrics=metrics,
         log=log,
+        save_model=save_model,
     )
     trainer.train(dl_train, dl_cv)
 
@@ -152,5 +154,6 @@ if __name__ == "__main__":
         metrics=metrics,
         model_type="roberta-base",
         log=False,
-        sample_data=True
+        sample_data=True,
+        save_model=True,
     )

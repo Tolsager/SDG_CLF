@@ -104,10 +104,17 @@ def preprocess_dataset(
     if not multi_label:
         ds = ds.filter(lambda sample: sample["nclasses"] == 1)
 
-    # remove unused columns
+    # remove non-english text
+    if tweet:
+        ds = ds.filter(lambda sample: sample["lang"] == "en")
+    ds = ds.map(
+        preprocess_sample, num_proc=6, fn_kwargs={"tweet": tweet}
+    )
+
+    # remove redundant columns
     if tweet:
         ds = ds.remove_columns(
-            ["Unnamed: 0", "id", "created_at", "category"]
+            ["Unnamed: 0", "id", "created_at", "category", "__index_level_0__", "lang"] + [f"#sdg{i}" for i in range(1, 18)]
         )
     else:
         # remove unused columns
@@ -121,47 +128,9 @@ def preprocess_dataset(
                 "Index.Keywords",
                 "EID",
                 "text",
-            ]
+                "__index_level_0__",
+            ] + [f"sdg{i}" for i in range(1, 18)]
         )
-    # print(
-    #     f"Length of dataset before removing non-english tweets: {ds.num_rows}"
-    # )
-
-    # remove non-english text
-    if tweet:
-        ds = ds.filter(lambda sample: sample["lang"] == "en")
-    # print(
-    #     f"Length of dataset after removing non-english tweets: {ds.num_rows}"
-    # )
-
-    # apply the preprocessing function to every sample
-    # tokenizer_path = "tokenizers/" + tokenizer_type
-    # if not os.path.exists(tokenizer_path):
-    #     tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
-    #     os.makedirs(tokenizer_path)
-    #     tokenizer.save_pretrained(tokenizer_path)
-    # else:
-    #     tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
-    ds = ds.map(
-        preprocess_sample, num_proc=6, fn_kwargs={"tweet": tweet}
-        # preprocess_sample, num_proc=1, fn_kwargs={"tweet": tweet}
-    )
-
-    # remove redundant columns
-    if tweet:
-        ds = ds.remove_columns(
-            [f"#sdg{i}" for i in range(1, 18)] + ["lang"] + ["__index_level_0__"]
-        )
-    else:
-        ds = ds.remove_columns(
-            [f"sdg{i}" for i in range(1, 18)]
-        )
-
-    # if split:
-    #     ds = ds.shuffle(seed=seed)
-    #
-    #     # ds = ds.cast_column("label", datasets.Sequence(datasets.Value("float32")))
-    #     ds = ds.train_test_split(test_size=0.1)
     return ds
 
 
@@ -265,7 +234,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
 
 if __name__ == "__main__":
     os.chdir("..")
-    # create_base_dataset(tweet=False)
+    # create_base_dataset(tweet=True)
     # create_base_dataset()
     # ds_dict = datasets.load_from_disk("data/processed/tweets/base")
     # print()
@@ -275,5 +244,6 @@ if __name__ == "__main__":
     # get_dataset("roberta-base")
     # get_dataset("roberta-base")
     # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
-    ds_dict = get_dataset("roberta-base", sample_data=True, tweet=False)
-    #print()
+    # ds_dict = get_dataset("roberta-base", sample_data=True, tweet=False)
+    ds_dict = datasets.load_from_disk("data/processed/tweets/base")
+    print()

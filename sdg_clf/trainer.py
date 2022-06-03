@@ -9,12 +9,10 @@ from tqdm import tqdm, trange
 
 from datetime import datetime
 import datasets
-# from .tweet_dataset import get_dataset
 import torchmetrics
 import transformers
 from model import get_model
 import wandb
-# from utils import chunks
 from dataset_utils import load_ds_dict
 
 

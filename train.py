@@ -107,7 +107,7 @@ def main(
         metrics=metrics,
         log=log,
         save_model=save_model,
-        save_metric=save_metric
+        save_metric=save_metric,
     )
     trainer.train(dl_train, dl_cv)
 
@@ -119,10 +119,10 @@ if __name__ == "__main__":
             "goal": "maximize",
             "metric": torchmetrics.Accuracy(subset_accuracy=True, multiclass=not multilabel),
         },
-        "auroc": {
-            "goal": "maximize",
-            "metric": torchmetrics.AUROC(num_classes=17),
-        },
+        # "auroc": {
+            # "goal": "maximize",
+            # "metric": torchmetrics.AUROC(num_classes=17),
+        # },
         "precision": {
             "goal": "maximize",
             "metric": torchmetrics.Precision(num_classes=17, multiclass=not multilabel),
@@ -148,12 +148,12 @@ if __name__ == "__main__":
 
     main(
         batch_size=16,
-        epochs=2,
+        epochs=5,
         multi_label=multilabel,
         call_tqdm=True,
         metrics=metrics,
         model_type="roberta-base",
-        log=False,
+        log=True,
         sample_data=False,
         save_model=True,
     )

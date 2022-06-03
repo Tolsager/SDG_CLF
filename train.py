@@ -23,34 +23,32 @@ from sdg_clf.dataset_utils import get_dataset
 
 def main(
     batch_size: int = 16,
-    csv_path: str = "data/raw/allSDGtweets.csv",
     epochs: int = 2,
     multi_label: bool = False,
     call_tqdm: bool = True,
     sample_data: bool = False,
-    folds: int = False,
     metrics: dict = None,
     seed: int = 0,
     model_type: str = "roberta-base",
     log: bool = True,
     save_model: bool = False,
-    save_metric: str = "accuracy"
+    save_metric: str = "accuracy",
 ):
-    """main() completes multi_label learning loop for one ROBERTA model using either one model order cross-validation to find
-    the best hyper parameters. Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
+    """main() completes multi_label learning loop for one ROBERTA model using one model.
+    Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
 
     Args:
         batch_size (int, optional): How many samples per batch to load in the Dataloader. Defaults to 16.
-        csv_path (str, optional): Path to csv file. Defaults to "data/raw/allSDGtweets.csv".
         epochs (int, optional): Epochs for trainer. Defaults to 2.
         multi_label (bool, optional): Set to true if problem is a multi-label problem; if false problem is a multi-class label. Defaults to False.
         call_tqdm (bool, optional): Whether the training process is verbosely displayed in the console. Defaults to True.
-        nrows (int, optional): How many rows of the dataset will be loaded; The entire dataset will be loaded if nrows is None. Defaults to None.
-        folds (int, optional): Number of folds in the k-fold cross validation; if False cross-validation is not used. Defaults to False.
+        sample_data (bool, optional): Set to True for debugging purposes on a smaller data subset. Defaults to False.
         metrics (dict, optional): Specification of metrics using torchmetrics. Defaults to None.
         seed (int, optional): Random seed specification for controlled experiments. Defaults to 0.
-        model_type (str, optional): Specification of pre-trained hugging face model used. Defaults to "roberta-base".
+        model_type (str, optional): Specification of pre-trained huggingface model used. Defaults to "roberta-base".
         log (bool, optional): Enables/disables logging via. Weights and Biases. Defaults to True.
+        save_model (bool, optional): Set to true if models should be saved during training. Defaults to False.
+        save_metric (str, optional): Determines the metric to compare between models for updating. Defaults to "accuracy".
     """
 
     # Setup W and B project log

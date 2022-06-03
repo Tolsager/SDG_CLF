@@ -128,7 +128,6 @@ def preprocess_dataset(
                 "Index.Keywords",
                 "EID",
                 "text",
-<<<<<<< HEAD
                 "__index_level_0__"
             ]
         )
@@ -159,14 +158,10 @@ def preprocess_dataset(
     # remove redundant columns
     if tweet:
         ds = ds.remove_columns(
-            [f"#sdg{i}" for i in range(1, 18)] + ["lang"] + ["__index_level_0__"]
-=======
-                "__index_level_0__",
-            ] + [f"sdg{i}" for i in range(1, 18)]
->>>>>>> a9d4f5d68f523869a4ebcef32e897a9f36966276
-        )
+            [f"#sdg{i}" for i in range(1, 18)] + ["lang"])
+    else:
+        ds = ds.remove_columns([f"sdg{i}" for i in range(1, 18)])
     return ds
-
 
 def split_dataset(
         ds: datasets.Dataset, tweet: bool = True

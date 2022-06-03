@@ -322,26 +322,27 @@ class SDGTrainer(Trainer):
 
     def long_text_step(self, model_inputs):
         out = self.model(**model_inputs).logits
-        out = torch.sum(out, dim=1)
-        pred = torch.argmax(out, dim=0)
-        return pred
+        out = torch.mean(out, dim=0)
+        return out
 
     def test_long_text(self, dataloader, max_length: int = 260):
         self.model.eval()
+        self.reset_metrics()
         predictions = []
-        n_correct = 0
+        labels = []
         for sample in dataloader:
             with torch.no_grad():
                 input_ids = sample["input_ids"]
-                label = sample["label"]
+                label = torch.squeeze(sample["label"], dim=0)
+                labels.append(label)
                 model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length)
                 prediction = self.long_text_step(model_inputs)
                 predictions.append(prediction)
-                if torch.argmax(label, dim=1).item() == prediction.item() and torch.sum(label, dim=1) == 1:
-                    n_correct += 1
-        print(n_correct)
-        print(n_correct / len(predictions))
-        return predictions
+        self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device), "prediction": torch.stack(predictions, dim=0)})
+        metrics = self.compute_metrics()
+        print(metrics)
+
+        return metrics
 
 
 if __name__ == "__main__":
@@ -351,11 +352,34 @@ if __name__ == "__main__":
     # sample = test["Abstract"][0]
     tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
     sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta_base")
+    # metrics = {
+    #     "accuracy": {
+    #         "goal": "maximize",
+    #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
+    #     }
+    # }
+    multilabel = True
     metrics = {
         "accuracy": {
             "goal": "maximize",
-            "metric": torchmetrics.Accuracy(subset_accuracy=True),
-        }
+            "metric": torchmetrics.Accuracy(subset_accuracy=True, multiclass=not multilabel),
+        },
+        "auroc": {
+        "goal": "maximize",
+        "metric": torchmetrics.AUROC(num_classes=17),
+        },
+        "precision": {
+            "goal": "maximize",
+            "metric": torchmetrics.Precision(num_classes=17, multiclass=not multilabel),
+        },
+        "recall": {
+            "goal": "maximize",
+            "metric": torchmetrics.Recall(num_classes=17, multiclass=not multilabel),
+        },
+        "f1": {
+            "goal": "maximize",
+            "metric": torchmetrics.F1Score(num_classes=17, multiclass=not multilabel),
+        },
     }
     trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model, metrics=metrics)
     # model_inputs = trainer.prepare_long_text_input(sample)

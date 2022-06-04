@@ -12,20 +12,22 @@ import datasets
 import torchmetrics
 import transformers
 import wandb
+from dataset_utils import load_ds_dict
+
 
 class Trainer:
     def __init__(
-        self,
-        model=None,
-        epochs: int = None,
-        metrics: dict = None,
-        save_metric: str = None,
-        criterion: Callable = None,
-        save_filename: str = "best_model",
-        gpu_index: int = None,
-        save_model: bool = False,
-        call_tqdm: bool = True,
-        log: bool = True,
+            self,
+            model=None,
+            epochs: int = None,
+            metrics: dict = None,
+            save_metric: str = None,
+            criterion: Callable = None,
+            save_filename: str = "best_model",
+            gpu_index: int = None,
+            save_model: bool = False,
+            call_tqdm: bool = True,
+            log: bool = True,
     ):
         """
         save_filename : str
@@ -128,15 +130,15 @@ class Trainer:
             if self.save_model:
                 new_best = False
                 if (
-                    self.metrics[self.save_metric]["goal"] == "maximize"
-                    and epoch_metrics_val[self.save_metric]
-                    > self.best_val_metrics[self.save_metric]
+                        self.metrics[self.save_metric]["goal"] == "maximize"
+                        and epoch_metrics_val[self.save_metric]
+                        > self.best_val_metrics[self.save_metric]
                 ):
                     new_best = True
                 elif (
-                    self.metrics[self.save_metric]["goal"] == "minimize"
-                    and epoch_metrics_val[self.save_metric]
-                    < self.best_val_metrics[self.save_metric]
+                        self.metrics[self.save_metric]["goal"] == "minimize"
+                        and epoch_metrics_val[self.save_metric]
+                        < self.best_val_metrics[self.save_metric]
                 ):
                     new_best = True
 
@@ -149,13 +151,13 @@ class Trainer:
             for k, v in epoch_metrics_val.items():
                 new_best = False
                 if (
-                    self.metrics[k]["goal"] == "maximize"
-                    and v > self.best_val_metrics[k]
+                        self.metrics[k]["goal"] == "maximize"
+                        and v > self.best_val_metrics[k]
                 ):
                     new_best = True
                 elif (
-                    self.metrics[k]["goal"] == "minimize"
-                    and v < self.best_val_metrics[k]
+                        self.metrics[k]["goal"] == "minimize"
+                        and v < self.best_val_metrics[k]
                 ):
                     new_best = True
 
@@ -267,8 +269,9 @@ class Trainer:
 
 
 class SDGTrainer(Trainer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, tokenizer=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.tokenizer = tokenizer
 
     def train_step(self, batch):
         tokens = batch["input_ids"]
@@ -298,49 +301,116 @@ class SDGTrainer(Trainer):
                 else step_outputs["prediction"],
             )
 
-    def long_text_step(self, longtext):
+    def prepare_long_text_input(self, input_ids, max_length: int = 260):
+        input_ids = input_ids.tolist()[0]
+        input_ids = [input_ids[x:x + max_length - 2] for x in range(0, len(input_ids), max_length - 2)]
+        attention_masks = []
+        for i in range(len(input_ids)):
+            input_ids[i] = [tokenizer.cls_token_id] + input_ids[i] + [tokenizer.eos_token_id]
+            attention_mask = [1] * len(input_ids[i])
+            while len(input_ids[i]) < max_length:
+                input_ids[i] += [tokenizer.pad_token_id]
+                attention_mask += [0]
+            attention_masks.append(attention_mask)
 
-        # Take input ids of varieing length
-        # Split into max 260 length
-        #
-        splittedtext = {'input_ids':[longtext['input_ids'][x:x + 260] for x in range(0, len(longtext['input_ids']), 260)],
-                        'attention_mask':[longtext['attention_mask'][x:x + 260] for x in range(0, len(longtext['attention_mask']), 260)]}
-        if len(splittedtext['input_ids'][-1]) != 260:
-            pass
-            # Padding to be done here
+        input_ids = torch.tensor(input_ids, device=self.device)
+        attention_mask = torch.tensor(attention_masks, device=self.device)
+        return {"input_ids": input_ids, "attention_mask": attention_mask}
 
+    def long_text_step(self, model_inputs):
+        out = self.model(**model_inputs).logits
+        out = torch.mean(out, dim=0)
+        return out
+
+    def test_long_text(self, dataloader, max_length: int = 260):
+        self.model.eval()
+        self.reset_metrics()
+        predictions = []
         labels = []
-        for chunk in splittedtext:
-            labels.append(self.test(xxxx))
+        for sample in dataloader:
+            with torch.no_grad():
+                input_ids = sample["input_ids"]
+                label = torch.squeeze(sample["label"], dim=0)
+                labels.append(label)
+                model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length)
+                prediction = self.long_text_step(model_inputs)
+                predictions.append(prediction)
+        self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device), "prediction": torch.stack(predictions, dim=0)})
+        metrics = self.compute_metrics()
+        print(metrics)
 
-        return max(set(labels), key = labels.count)
+        return metrics
 
 
 if __name__ == "__main__":
-    #dataset = tweet_dataset.preprocess_dataset(nrows=4000)
-    dataset = datasets.load_from_disk("../data/processed/scopus/roberta-base")
-    dataset_train = dataset["train"]
-    dataset_val = dataset["test"]
-    dataset_train.set_format(
-        type="torch", columns=["input_ids", "attention_mask", "label"]
-    )
-    dataset_val.set_format(
-        type="torch", columns=["input_ids", "attention_mask", "label"]
-    )
-    dataloader_val = torch.utils.data.DataLoader(dataset_val, batch_size=16)
-    dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=16)
-    metrics = {
-        "accuracy": {
+    # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
+    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
+    test = ds_dict["test"]
+    # sample = test["Abstract"][0]
+    tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
+    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta_base", num_labels=17)
+    sdg_model.cuda()
+    sdg_model.load_state_dict(torch.load("../pretrained_models/best_model_0603141006.pt"))
+    # metrics = {
+    #     "accuracy": {
+    #         "goal": "maximize",
+    #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
+    #     }
+    # }
+    multilabel = True
+    for i in np.linspace(0, 1, 9):
+        metrics = {
+            "accuracy": {
+                "goal": "maximize",
+                "metric": torchmetrics.Accuracy(threshold=i,subset_accuracy=True, multiclass=not multilabel),
+            },
+            "auroc": {
             "goal": "maximize",
-            "metric": torchmetrics.Accuracy(subset_accuracy=True),
+            "metric": torchmetrics.AUROC(num_classes=17),
+            },
+            "precision": {
+                "goal": "maximize",
+                "metric": torchmetrics.Precision(threshold=i,num_classes=17, multiclass=not multilabel),
+            },
+            "recall": {
+                "goal": "maximize",
+                "metric": torchmetrics.Recall(threshold=i,num_classes=17, multiclass=not multilabel),
+            },
+            "f1": {
+                "goal": "maximize",
+                "metric": torchmetrics.F1Score(threshold=i,num_classes=17, multiclass=not multilabel),
+            },
         }
-    }
-    sdg_model = model.get_model(pretrained_path="pretrained_models/roberta_base")
-    criterion = torch.nn.BCEWithLogitsLoss()
-    trainer = SDGTrainer(
-        metrics=metrics, epochs=3, model=sdg_model, criterion=criterion
-    )
-    trainer.long_text_step(dataset_val[0])
+        trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model, metrics=metrics)
+        # model_inputs = trainer.prepare_long_text_input(sample)
+        # pred =
+        test.set_format("pt", columns=["input_ids", "label"])
+        dl = torch.utils.data.DataLoader(test)
+        trainer.test_long_text(dl)
+
+    # dataset = datasets.load_from_disk("../data/processed/scopus/roberta-base")
+    # dataset_train = dataset["train"]
+    # dataset_val = dataset["test"]
+    # dataset_train.set_format(
+    #     type="torch", columns=["input_ids", "attention_mask", "label"]
+    # )
+    # dataset_val.set_format(
+    #     type="torch", columns=["input_ids", "attention_mask", "label"]
+    # )
+    # dataloader_val = torch.utils.data.DataLoader(dataset_val, batch_size=16)
+    # dataloader_train = torch.utils.data.DataLoader(dataset_train, batch_size=16)
+    # metrics = {
+    #     "accuracy": {
+    #         "goal": "maximize",
+    #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
+    #     }
+    # }
+    # sdg_model = model.get_model(pretrained_path="pretrained_models/roberta_base")
+    # criterion = torch.nn.BCEWithLogitsLoss()
+    # trainer = SDGTrainer(
+    #     metrics=metrics, epochs=3, model=sdg_model, criterion=criterion
+    # )
+    # trainer.long_text_step(dataset_val[0])
 
     """best_val_metrics = trainer.train(
         train_dataloader=dataloader_train, val_dataloader=dataloader_val

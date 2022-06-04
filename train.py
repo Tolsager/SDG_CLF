@@ -111,6 +111,7 @@ def main(
         log=log,
         save_model=save_model,
         save_metric=save_metric,
+        lr=lr,
     )
     trainer.train(dl_train, dl_cv)
 
@@ -145,6 +146,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--log", help="log results to weights and biases", action='store_true', default=False)
     parser.add_argument("-s", "--save", help="save models during training", action="store_true", default=False)
     parser.add_argument("-e", "--epochs", help="number of epochs to train model", type=int, default=2)
+    parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
     args = parser.parse_args()
     # main(
     #     batch_size=16,
@@ -166,4 +168,5 @@ if __name__ == "__main__":
         log=args.log,
         sample_data=False,
         save_model=args.save,
+        lr=args.lr,
     )

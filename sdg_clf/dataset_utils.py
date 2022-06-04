@@ -27,11 +27,10 @@ def preprocess_sample(
         sample: dict,
         tweet: bool = True,
 ):
-    """preprocess a sample of the dataset
+    """preprocess a sample of the dataset by editing the text and collecting the labels in a list
 
     Args:
         sample (dict): dataset sample
-        tokenizer (transformers.PreTrainedTokenizer): a pretrained tokenizer
         tweet (bool): whether the data are tweets or abstracts
 
     Returns:
@@ -66,12 +65,6 @@ def preprocess_sample(
     label = [int(sample[f"{label_name}{i}"]) for i in range(1, 18)]
     sample["label"] = label
 
-    # # tokenize text
-    # encoding = tokenizer(
-    #     sample[textname], max_length=260, padding="max_length", truncation=True
-    # )
-    # sample["input_ids"] = encoding.input_ids
-    # sample["attention_mask"] = encoding.attention_mask
     return sample
 
 
@@ -85,7 +78,8 @@ def preprocess_dataset(
 
     Args:
         file (str, optional): path to csv file. Defaults to "data/raw/allSDGtweets.csv".
-        seed (int, optional): seed used for shuffling. Defaults to 0.
+        nrows: only used for debugging the preprocessing
+        multi_label: if true only load samples with nclasses==1
         tweet (bool): whether the data are tweets or abstracts
 
     Returns:
@@ -114,10 +108,10 @@ def preprocess_dataset(
     # remove redundant columns
     if tweet:
         ds = ds.remove_columns(
-            ["Unnamed: 0", "id", "created_at", "category", "__index_level_0__", "lang"] + [f"#sdg{i}" for i in range(1, 18)]
+            ["Unnamed: 0", "id", "created_at", "category", "__index_level_0__", "lang"] + [f"#sdg{i}" for i in
+                                                                                           range(1, 18)]
         )
     else:
-        # remove unused columns
         ds = ds.remove_columns(
             [
                 "Unnamed: 0",
@@ -129,39 +123,11 @@ def preprocess_dataset(
                 "EID",
                 "text",
                 "__index_level_0__"
-            ]
+            ] + [f"sdg{i}" for i in range(1, 18)]
         )
-    # print(
-    #     f"Length of dataset before removing non-english tweets: {ds.num_rows}"
-    # )
 
-    # remove non-english text
-    if tweet:
-        ds = ds.filter(lambda sample: sample["lang"] == "en")
-    # print(
-    #     f"Length of dataset after removing non-english tweets: {ds.num_rows}"
-    # )
-
-    # apply the preprocessing function to every sample
-    # tokenizer_path = "tokenizers/" + tokenizer_type
-    # if not os.path.exists(tokenizer_path):
-    #     tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
-    #     os.makedirs(tokenizer_path)
-    #     tokenizer.save_pretrained(tokenizer_path)
-    # else:
-    #     tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
-    ds = ds.map(
-        preprocess_sample, num_proc=6, fn_kwargs={"tweet": tweet}
-        # preprocess_sample, num_proc=1, fn_kwargs={"tweet": tweet}
-    )
-
-    # remove redundant columns
-    if tweet:
-        ds = ds.remove_columns(
-            [f"#sdg{i}" for i in range(1, 18)] + ["lang"])
-    else:
-        ds = ds.remove_columns([f"sdg{i}" for i in range(1, 18)])
     return ds
+
 
 def split_dataset(
         ds: datasets.Dataset, tweet: bool = True
@@ -183,50 +149,92 @@ def split_dataset(
     return dataset_dict
 
 
-def create_base_dataset(tweet: bool = True, nrows: int = None):
+def create_base_dataset(tweet: bool = True, nrows: int = None, path_data: str = "data"):
+    """preprocesses the text of the two datasets
+
+    Args:
+        tweet (bool): whether the data are tweets or abstracts
+        nrows: only used for debugging
+        path_data: path to data directory
+
+    Returns:
+        None
+
+    """
+    path = os.path.join(path_data, "raw")
     if tweet:
-        path = "data/raw/allSDGtweets.csv"
+        path = os.path.join(path, "allSDGtweets.csv")
     else:
-        path = "data/raw/scopus_ready_to_use.csv"
+        path = os.path.join(path, "scopus_ready_to_use.csv")
 
     ds = preprocess_dataset(file=path, nrows=nrows, tweet=tweet)
     ds_dict = split_dataset(ds, tweet=tweet)
-    save_path = "data/processed"
+    path_save = os.path.join(path_data, "processed")
     if tweet:
-        save_path += "/tweets/base"
+        path_save = os.path.join(path_save, "tweets/base")
     else:
-        save_path += "/scopus/base"
-    ds_dict.save_to_disk(save_path)
+        path_save = os.path.join(path_save, "scopus/base")
+    ds_dict.save_to_disk(path_save)
 
 
-def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = True, max_length: int = 260):
+def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = True, max_length: int = 260, path_data: str = "data", ):
+    """tokenizes the dataset
+
+    Args:
+        tokenizer: an instantiated huggingface tokenizer
+        tweet: tweet dataset or scopus
+        max_length: maximum token length used during training
+        path_data: path to data directory
+
+    Returns:
+        dataset dict with the output from the tokenizer
+
+    """
+    path_data = os.path.join(path_data, "processed")
     if tweet:
-        ds_dict = datasets.load_from_disk("data/processed/tweets/base")
+        ds_dict = datasets.load_from_disk(os.path.join(path_data, "tweets/base"))
         textname = "text"
     else:
-        ds_dict = datasets.load_from_disk("data/processed/scopus/base")
+        ds_dict = datasets.load_from_disk(os.path.join(path_data, "scopus/base"))
         textname = "Abstract"
 
     for split in ds_dict.keys():
         if tweet:
-            ds_dict[split] = ds_dict[split].map(lambda samples: tokenizer(samples[textname], padding="max_length", max_length=max_length, truncation=True), batched=True, num_proc=1)
+            ds_dict[split] = ds_dict[split].map(
+                lambda samples: tokenizer(samples[textname], padding="max_length", max_length=max_length,
+                                          truncation=True), batched=True, num_proc=1)
         else:
             ds_dict[split] = ds_dict[split].map(
-                lambda samples: tokenizer(samples[textname], add_special_tokens=False, truncation=False), num_proc=1)
+                lambda samples: tokenizer(samples[textname], add_special_tokens=False, truncation=False,
+                                          return_attention_mask=False), num_proc=1)
         ds_dict[split] = ds_dict[split].remove_columns([textname, "nclasses", "label"])
 
     return ds_dict
 
-def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260, overwrite: bool = False):
-    # load tokenized dataset if exists
-    path_data = "data/processed"
-    if tweet:
-        path_data += "/tweets"
-    else:
-        path_data += "/scopus"
-    path_base = path_data + "/base"
 
-    path_ds_dict_tokens = path_data + f"/{tokenizer_type}"
+def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260,
+                overwrite: bool = False, path_data: str = "data", path_tokenizers: str = "tokenizers"):
+    """creates the dataset if it doesn't already exist otherwise it also creates and save it
+
+    Args:
+        tokenizer_type: name of a huggingface tokenizer e.g. bert-base-uncased
+        tweet: if scopus or tweet dataset
+        sample_data: if true only selects 20 samples. Used for debugging
+        max_length: max token length used for training the transformer
+        overwrite: if an existing dataset should be overwritten
+
+    Returns:
+        processed dataset for training with transformer outputs and labels
+    """
+    # load tokenized dataset if exists
+    path_data1 = os.path.join(path_data, "processed")
+    if tweet:
+        path_data1 = os.path.join(path_data1, "tweets")
+    else:
+        path_data1 = os.path.join(path_data1, "scopus")
+    path_base = os.path.join(path_data1, "base")
+
+    path_ds_dict_tokens = os.path.join(path_data1, tokenizer_type)
     if os.path.exists(path_ds_dict_tokens) and not overwrite:
         ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
         ds_dict_base = datasets.load_from_disk(path_base)
@@ -238,19 +246,19 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
 
     # else create dataset
     if not os.path.exists(path_base):
-        create_base_dataset(tweet=tweet)
+        create_base_dataset(tweet=tweet, path_data=path_data)
     ds_dict_base = datasets.load_from_disk(path_base)
 
-    tokenizer_path = "tokenizers/" + tokenizer_type
-    if not os.path.exists(tokenizer_path):
+    path_tokenizer = os.path.join(path_tokenizers, tokenizer_type)
+    if not os.path.exists(path_tokenizer):
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
-        os.makedirs(tokenizer_path)
-        tokenizer.save_pretrained(tokenizer_path)
+        os.makedirs(path_tokenizer)
+        tokenizer.save_pretrained(path_tokenizer)
     else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(path_tokenizer)
 
-    ds_dict_tokens = tokenize_dataset(tokenizer, tweet=tweet, max_length=max_length)
-    path_save = path_data + f"/{tokenizer_type}"
+    ds_dict_tokens = tokenize_dataset(tokenizer, tweet=tweet, max_length=max_length, path_data=path_data)
+    path_save = path_data1 + f"/{tokenizer_type}"
     ds_dict_tokens.save_to_disk(path_save)
 
     for split in ds_dict_base.keys():
@@ -258,6 +266,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
         if sample_data:
             ds_dict_tokens[split] = ds_dict_tokens[split].select(np.arange(20))
     return ds_dict_tokens
+
 
 def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data="data"):
     path_ds = os.path.join(path_data, "processed", "tweets" if tweet else "scopus")
@@ -274,19 +283,5 @@ def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data="data"):
 
 
 if __name__ == "__main__":
-    os.chdir("..")
-    # create_base_dataset(tweet=True)
-    # create_base_dataset(tweet=False)
-    # ds_dict = datasets.load_from_disk("data/processed/tweets/base")
-    # print()
-    # tokenizer = transformers.AutoTokenizer.from_pretrained("roberta-base")
-    # ds_dict_tokens = tokenize_dataset(tokenizer)
-    # print()
-    # get_dataset("roberta-base")
-    # get_dataset("roberta-base")
-    # ds_dict = datasets.load_from_disk("data/processed/tweets/roberta-base")
-    #ds_dict = get_dataset("roberta-base", sample_data=True)
-    #print()
-    get_dataset("roberta-base",tweet=False)
-    # ds_dict = datasets.load_from_disk("data/processed/scopus/roberta-base")
-    print()
+    ds_dict_tweets = get_dataset("roberta-base", path_data="../data")
+    ds_dict_scopus = get_dataset("roberta-base", path_data="../data", tweet=False)

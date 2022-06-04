@@ -36,6 +36,7 @@ def main(
     log: bool = True,
     save_model: bool = False,
     save_metric: str = "accuracy",
+    lr: float = 3e-5,
 ):
     """main() completes multi_label learning loop for one ROBERTA model using one model.
     Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
@@ -60,7 +61,7 @@ def main(
         config = {
             "epochs": epochs,
             "batch_size": batch_size,
-            "learning_rate": 3e-5,
+            "learning_rate": lr,
         }
         wandb.init(project="sdg_clf", entity="pydqn", config=config)
 
@@ -168,5 +169,5 @@ if __name__ == "__main__":
         log=args.log,
         sample_data=False,
         save_model=args.save,
-        lr=args.lr,
+        lr=args.learning_rate,
     )

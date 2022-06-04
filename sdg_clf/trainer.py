@@ -17,17 +17,18 @@ from dataset_utils import load_ds_dict
 
 class Trainer:
     def __init__(
-            self,
-            model=None,
-            epochs: int = None,
-            metrics: dict = None,
-            save_metric: str = None,
-            criterion: Callable = None,
-            save_filename: str = "best_model",
-            gpu_index: int = None,
-            save_model: bool = False,
-            call_tqdm: bool = True,
-            log: bool = True,
+        self,
+        model=None,
+        epochs: int = None,
+        metrics: dict = None,
+        save_metric: str = None,
+        criterion: Callable = None,
+        save_filename: str = "best_model",
+        gpu_index: int = None,
+        save_model: bool = False,
+        call_tqdm: bool = True,
+        log: bool = True,
+        lr: float = 3e-5,
     ):
         """
         save_filename : str
@@ -39,6 +40,7 @@ class Trainer:
         else:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = model.to(self.device)
+        self.lr = lr
         self.optimizer = self.set_optimizer(self.model)
         self.epochs = epochs
         self.save_filename = save_filename
@@ -290,7 +292,7 @@ class SDGTrainer(Trainer):
         return {"loss": loss, "prediction": out, "label": label}
 
     def set_optimizer(self, model):
-        optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr)
         return optimizer
 
     def update_metrics(self, step_outputs: dict):

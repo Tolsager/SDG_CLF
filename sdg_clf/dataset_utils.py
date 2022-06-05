@@ -7,7 +7,8 @@ import numpy as np
 
 
 def remove_with_regex(sample: dict, pattern: re.Pattern = None, textname: str = "text"):
-    """Deletes every match with the "pattern".
+    """
+    Deletes every match with the "pattern".
     Sample must have a 'text' feature.
     Is used for the 'map' dataset method
 
@@ -28,7 +29,8 @@ def preprocess_sample(
         sample: dict,
         tweet: bool = True,
 ):
-    """preprocess a sample of the dataset by editing the text and collecting the labels in a list
+    """
+    Preprocess a sample of the dataset by editing the text and collecting the labels in a list
 
     Args:
         sample (dict): dataset sample
@@ -75,7 +77,8 @@ def preprocess_dataset(
         multi_label: bool = True,
         tweet: bool = True,
 ):
-    """Loads the tweet CSV into a huggingface dataset and apply the preprocessing
+    """
+    Loads the tweet CSV into a huggingface dataset and apply the preprocessing
 
     Args:
         file (str, optional): path to csv file. Defaults to "data/raw/allSDGtweets.csv".
@@ -133,7 +136,8 @@ def preprocess_dataset(
 def split_dataset(
         ds: datasets.Dataset, tweet: bool = True
 ):
-    """Splits the huggingface dataset into a test, training and validation set for tweets and a test and validation set for Scopus Abtracts
+    """
+    Splits the huggingface dataset into a test, training and validation set for tweets and a test and validation set for Scopus Abtracts
 
     Args:
         ds (datasets.Dataset): a dataset.
@@ -160,7 +164,8 @@ def split_dataset(
 
 
 def create_base_dataset(tweet: bool = True, nrows: int = None, path_data: str = "data"):
-    """preprocesses the text of the two datasets
+    """
+    Preprocesses the text of the two datasets
 
     Args:
         tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
@@ -188,7 +193,8 @@ def create_base_dataset(tweet: bool = True, nrows: int = None, path_data: str = 
 
 
 def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = True, max_length: int = 260, path_data: str = "data", ):
-    """tokenizes the dataset
+    """
+    Tokenizes the dataset
 
     Args:
         tokenizer (transformers.PreTrainedTokenizer): an instantiated huggingface tokenizer
@@ -224,7 +230,8 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
 
 def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260,
                 overwrite: bool = False, path_data: str = "data", path_tokenizers: str = "tokenizers"):
-    """creates the dataset if it doesn't already exist otherwise it loads it from the correct folder
+    """
+    Creates the dataset if it doesn't already exist otherwise it loads it from the correct folder
 
     Args:
         tokenizer_type (str): name of a huggingface tokenizer e.g. bert-base-uncased
@@ -281,7 +288,8 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
 
 
 def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data: str ="data"):
-    """Load an existing dataset from the files
+    """
+    Load an existing dataset from the files
 
         Args:
             tokenizer_type (str): name of a huggingface tokenizer e.g. bert-base-uncased

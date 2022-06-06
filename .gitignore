@@ -9,6 +9,7 @@ data
 EDA_graphs
 playground.py
 .idea
+osdg_ip.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -33,10 +33,12 @@ def main(
     model_type: str = "roberta-base",
     log: bool = True,
     save_model: bool = False,
+    model: torch.nn.Module = False,
     save_metric: str = "accuracy",
     hypers: dict = {"learning_rate": 3e-5,
                     "batch_size": 16,
-                    "epochs": 2},
+                    "epochs": 2,
+                    "weight_decay": 1e-2},
 ):
     """main() completes multi_label learning loop for one ROBERTA model using one model.
     Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
@@ -54,12 +56,11 @@ def main(
         save_model (bool, optional): Set to true if models should be saved during training. Defaults to False.
         save_metric (str, optional): Determines the metric to compare between models for updating. Defaults to "accuracy".
     """
-
+    if not log:
+        os.environ["WANDB_MODE"] = "offline"
     # Setup W and B project log
-    if log:
-        os.environ["WANDB_API_KEY"] = key
-        config = hypers
-        run = wandb.init(project="sdg_clf", entity="pydqn", config=config)
+    os.environ["WANDB_API_KEY"] = key
+    run = wandb.init(project="sdg_clf", entity="pydqn", config=hypers)
 
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
@@ -73,22 +74,23 @@ def main(
     # convert the model input for every split to tensors
     for ds in ds_dict.values():
         ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
+    if not model:
 
-    # load model
-    model_path = "pretrained_models/" + model_type
+        # load model
+        model_path = "pretrained_models/" + model_type
 
-    if not os.path.exists(model_path):
-        model = transformers.AutoModelForSequenceClassification.from_pretrained(
-            model_type, num_labels=17
-        )
+        if not os.path.exists(model_path):
+            model = transformers.AutoModelForSequenceClassification.from_pretrained(
+                model_type, num_labels=17
+            )
 
-        # I think hugggingface uses makedirs so the following line should be redundant but needs to be tested
-        # os.makedirs(model_path)
-        model.save_pretrained(model_path)
-    else:
-        model = transformers.AutoModelForSequenceClassification.from_pretrained(
-            model_path, num_labels=17
-        )
+            # I think hugggingface uses makedirs so the following line should be redundant but needs to be tested
+            # os.makedirs(model_path)
+            model.save_pretrained(model_path)
+        else:
+            model = transformers.AutoModelForSequenceClassification.from_pretrained(
+                model_path, num_labels=17
+            )
 
     # Set loss criterion for trainer
     if multi_label:
@@ -96,8 +98,8 @@ def main(
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
-    dl_train = DataLoader(ds_dict["train"], batch_size=config["batch_size"])
-    dl_cv = DataLoader(ds_dict["validation"], batch_size=config["batch_size"])
+    dl_train = DataLoader(ds_dict["train"], batch_size=hypers["batch_size"])
+    dl_cv = DataLoader(ds_dict["validation"], batch_size=hypers["batch_size"])
     trainer = SDGTrainer(
         model=model,
         criterion=criterion,
@@ -108,7 +110,7 @@ def main(
         save_filename=run.name,
         save_model=save_model,
         save_metric=save_metric,
-        hypers=config,
+        hypers=hypers,
     )
     trainer.train(dl_train, dl_cv)
 
@@ -145,6 +147,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--epochs", help="number of epochs to train model", type=int, default=2)
     parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
     parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
+    parser.add_argument("-n", "--n_layers", help="number of dense layers before classification head", type=int, default=0)
     args = parser.parse_args()
     # main(
     #     batch_size=16,
@@ -163,6 +166,7 @@ if __name__ == "__main__":
         log=args.log,
         sample_data=False,
         save_model=args.save,
+        model=get_model(pretrained_path="pretrained_models/roberta-base"),
         hypers={"learning_rate": args.learning_rate,
                 "batch_size": args.batchsize,
                 "epochs": args.epochs,

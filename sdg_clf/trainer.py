@@ -47,7 +47,7 @@ class Trainer:
         else:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = model.to(self.device)
-        self.lr = hypers["learning_rate"]
+        self.hypers = hypers
         self.optimizer = self.set_optimizer(self.model)
         self.epochs = hypers["epochs"]
         self.save_filename = save_filename

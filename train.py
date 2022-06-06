@@ -144,6 +144,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--save", help="save models during training", action="store_true", default=False)
     parser.add_argument("-e", "--epochs", help="number of epochs to train model", type=int, default=2)
     parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
+    parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
     args = parser.parse_args()
     # main(
     #     batch_size=16,
@@ -165,5 +166,5 @@ if __name__ == "__main__":
         hypers={"learning_rate": args.learning_rate,
                 "batch_size": args.batchsize,
                 "epochs": args.epochs,
-                },
+                "weight_decay": args.weight_decay},
     )

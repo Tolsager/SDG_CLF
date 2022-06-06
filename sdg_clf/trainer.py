@@ -1,12 +1,13 @@
 import torch
 import numpy as np
-from typing import Callable
+from typing import Callable, Union
 from tqdm import tqdm, trange
 from datetime import datetime
 import torchmetrics
 import transformers
 import wandb
 from dataset_utils import load_ds_dict
+import datasets
 
 
 class Trainer:
@@ -50,8 +51,6 @@ class Trainer:
         self.save_model = save_model
         self.call_tqdm = call_tqdm
         self.metrics = metrics
-        for k, v in self.metrics.items():
-            self.metrics[k]["metric"] = v["metric"].to(self.device)
         """
         metrics = {"accuracy": {"goal": "maximize", "metric": torchmetrics.Accuracy}, ...}
         """
@@ -96,6 +95,8 @@ class Trainer:
             dictionary of best values for each metrics in the self.metrics dictionary
         """
         print(f"Training on device: {self.device}")
+        # set metrics to device
+        self.set_metrics_to_device()
         self.time = datetime.now().strftime("%m%d%H%M%S")
         # validation check
         print("Validation check")
@@ -323,6 +324,11 @@ class Trainer:
         elif type(batch) == dict:
             return Trainer.get_batch_size(list(batch.values())[0])
 
+    def set_metrics_to_device(self):
+        for k, v in self.metrics.items():
+            self.metrics[k]["metric"] = v["metric"].to(self.device)
+
+
 
 class SDGTrainer(Trainer):
     def __init__(self, tokenizer=None, *args, **kwargs):
@@ -396,7 +402,8 @@ class SDGTrainer(Trainer):
                 else step_outputs["prediction"],
             )
 
-    def prepare_long_text_input(self, input_ids, max_length: int = 260):
+    def prepare_long_text_input(self, input_ids: Union[list[int], torch.Tensor], max_length: int = 260,
+                                step_size: int = 260):
         """
         Prepare longer text for classification task by breaking into chunks
 
@@ -407,8 +414,9 @@ class SDGTrainer(Trainer):
         Returns:
             Dictionary of chunked data ready for classification
         """
-        input_ids = input_ids.tolist()[0]
-        input_ids = [input_ids[x:x + max_length - 2] for x in range(0, len(input_ids), max_length - 2)]
+        if isinstance(input_ids, torch.Tensor):
+            input_ids = input_ids.tolist()[0]
+        input_ids = [input_ids[x:x + max_length - 2] for x in range(0, len(input_ids), step_size)]
         attention_masks = []
         for i in range(len(input_ids)):
             input_ids[i] = [tokenizer.cls_token_id] + input_ids[i] + [tokenizer.eos_token_id]
@@ -422,7 +430,7 @@ class SDGTrainer(Trainer):
         attention_mask = torch.tensor(attention_masks, device=self.device)
         return {"input_ids": input_ids, "attention_mask": attention_mask}
 
-    def long_text_step(self, model_inputs):
+    def long_text_step(self, model_outputs: torch.Tensor, strategy: str):
         """
         Completes one prediction step for one model input sample
 
@@ -432,11 +440,13 @@ class SDGTrainer(Trainer):
         Returns:
             model output classification results
         """
-        out = self.model(**model_inputs).logits
-        out = torch.mean(out, dim=0)
-        return out
+        if strategy == "mean":
+            prediction = torch.mean(model_outputs, dim=0)
+        elif strategy == "max":
+            prediction = torch.max(model_outputs, dim=0)
+        return prediction
 
-    def test_long_text(self, dataloader, max_length: int = 260):
+    def test_scopus(self, dataloader, max_length: int = 260, strategy: str = "mean", step_size=260):
         """
         Testing the classification performance of the model based on long texts
 
@@ -448,6 +458,7 @@ class SDGTrainer(Trainer):
             Classification metrics of task
         """
         self.model.eval()
+        self.set_metrics_to_device()
         self.reset_metrics()
         predictions = []
         labels = []
@@ -456,25 +467,41 @@ class SDGTrainer(Trainer):
                 input_ids = sample["input_ids"]
                 label = torch.squeeze(sample["label"], dim=0)
                 labels.append(label)
-                model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length)
-                prediction = self.long_text_step(model_inputs)
+                model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length, step_size=step_size)
+                model_outputs = self.model(**model_inputs).logits.sigmoid()
+                prediction = self.long_text_step(model_outputs, strategy=strategy)
                 predictions.append(prediction)
-        self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device), "prediction": torch.stack(predictions, dim=0)})
+        self.update_metrics(
+            {"label": torch.stack(labels, dim=0).to(self.device), "prediction": torch.stack(predictions, dim=0)})
         metrics = self.compute_metrics()
         print(metrics)
 
         return metrics
 
+    def infer_sample(self, text: str, step_size: int = 260, max_length: int = 260, strategy: str = "mean"):
+        text = text.lower()
+        input_ids = self.tokenizer(text, add_special_tokens=False, return_attention_mask=False)["input_ids"]
+        model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length, step_size=step_size)
+        model_outputs = self.model(**model_inputs).logits.sigmoid()
+        prediction = self.long_text_step(model_outputs, strategy=strategy)
+        return prediction.tolist()
+
+
 
 if __name__ == "__main__":
     # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
-    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
-    test = ds_dict["test"]
+    # ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
+    # test = ds_dict["test"]
     # sample = test["Abstract"][0]
     tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
-    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta_base", num_labels=17)
+    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta_base",
+                                                                                num_labels=17)
     sdg_model.cuda()
     sdg_model.load_state_dict(torch.load("../pretrained_models/best_model_0603141006.pt"))
+    trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
+    prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
+    print(prediction)
+    # model_inputs = trainer.prepare_long_text_input(sample)
     # metrics = {
     #     "accuracy": {
     #         "goal": "maximize",
@@ -486,27 +513,27 @@ if __name__ == "__main__":
         metrics = {
             "accuracy": {
                 "goal": "maximize",
-                "metric": torchmetrics.Accuracy(threshold=i,subset_accuracy=True, multiclass=not multilabel),
+                "metric": torchmetrics.Accuracy(threshold=i, subset_accuracy=True, multiclass=not multilabel),
             },
             "auroc": {
-            "goal": "maximize",
-            "metric": torchmetrics.AUROC(num_classes=17),
+                "goal": "maximize",
+                "metric": torchmetrics.AUROC(num_classes=17),
             },
             "precision": {
                 "goal": "maximize",
-                "metric": torchmetrics.Precision(threshold=i,num_classes=17, multiclass=not multilabel),
+                "metric": torchmetrics.Precision(threshold=i, num_classes=17, multiclass=not multilabel),
             },
             "recall": {
                 "goal": "maximize",
-                "metric": torchmetrics.Recall(threshold=i,num_classes=17, multiclass=not multilabel),
+                "metric": torchmetrics.Recall(threshold=i, num_classes=17, multiclass=not multilabel),
             },
             "f1": {
                 "goal": "maximize",
-                "metric": torchmetrics.F1Score(threshold=i,num_classes=17, multiclass=not multilabel),
+                "metric": torchmetrics.F1Score(threshold=i, num_classes=17, multiclass=not multilabel),
             },
         }
         trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model, metrics=metrics)
-        # model_inputs = trainer.prepare_long_text_input(sample)
-        test.set_format("pt", columns=["input_ids", "label"])
-        dl = torch.utils.data.DataLoader(test)
-        trainer.test_long_text(dl)
+        # print(prediction)
+        # test.set_format("pt", columns=["input_ids", "label"])
+        # dl = torch.utils.data.DataLoader(test)
+        # trainer.test_scopus(dl)

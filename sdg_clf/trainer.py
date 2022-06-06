@@ -6,7 +6,7 @@ from datetime import datetime
 import torchmetrics
 import transformers
 import wandb
-from dataset_utils import load_ds_dict
+from .dataset_utils import load_ds_dict
 import datasets
 
 

@@ -25,8 +25,6 @@ from sdg_clf.dataset_utils import get_dataset
 
 
 def main(
-    batch_size: int = 16,
-    epochs: int = 2,
     multi_label: bool = False,
     call_tqdm: bool = True,
     sample_data: bool = False,
@@ -36,7 +34,9 @@ def main(
     log: bool = True,
     save_model: bool = False,
     save_metric: str = "accuracy",
-    lr: float = 3e-5,
+    hypers: dict = {"learning_rate": 3e-5,
+                    "batch_size": 16,
+                    "epochs": 2},
 ):
     """main() completes multi_label learning loop for one ROBERTA model using one model.
     Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
@@ -58,12 +58,8 @@ def main(
     # Setup W and B project log
     if log:
         os.environ["WANDB_API_KEY"] = key
-        config = {
-            "epochs": epochs,
-            "batch_size": batch_size,
-            "learning_rate": lr,
-        }
-        wandb.init(project="sdg_clf", entity="pydqn", config=config)
+        config = hypers
+        run = wandb.init(project="sdg_clf", entity="pydqn", config=config)
 
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
@@ -100,19 +96,19 @@ def main(
     else:
         criterion = torch.nn.CrossEntropyLoss()
 
-    dl_train = DataLoader(ds_dict["train"], batch_size=batch_size)
-    dl_cv = DataLoader(ds_dict["validation"], batch_size=batch_size)
+    dl_train = DataLoader(ds_dict["train"], batch_size=config["batch_size"])
+    dl_cv = DataLoader(ds_dict["validation"], batch_size=config["batch_size"])
     trainer = SDGTrainer(
         model=model,
-        epochs=epochs,
         criterion=criterion,
         call_tqdm=call_tqdm,
         gpu_index=0,
         metrics=metrics,
         log=log,
+        save_filename=run.name,
         save_model=save_model,
         save_metric=save_metric,
-        lr=lr,
+        hypers=config,
     )
     trainer.train(dl_train, dl_cv)
 
@@ -158,10 +154,7 @@ if __name__ == "__main__":
     #     folds=3,
     #     metrics=metrics,
     # )
-
     main(
-        batch_size=args.batchsize,
-        epochs=args.epochs,
         multi_label=args.multilabel,
         call_tqdm=True,
         metrics=metrics,
@@ -169,5 +162,8 @@ if __name__ == "__main__":
         log=args.log,
         sample_data=False,
         save_model=args.save,
-        lr=args.learning_rate,
+        hypers={"learning_rate": args.learning_rate,
+                "batch_size": args.batchsize,
+                "epochs": args.epochs,
+                },
     )

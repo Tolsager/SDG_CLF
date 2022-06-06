@@ -76,11 +76,16 @@ def load_abstracts(
 
 
 if __name__ == "__main__":
-    abstracts_dataset = load_abstracts(nrows=10)
+    # abstracts_dataset = load_abstracts(nrows=10)
     # tweet_dataset = load_dataset(nrows=10, multi_label=False)
     # tweet_dataset = load_dataset()
     # abstracts_dataset.set_format(
     #    "torch", columns=["input_ids", "label", "attention_mask"]
     # )
     # print(tweet_dataset)
-    print(type(abstracts_dataset["train"][0]["input_ids"]))
+    # print(type(abstracts_dataset["train"][0]["input_ids"]))
+
+    import pandas as pd
+    df = pd.read_csv("../data/raw/scopus_ready_to_use.csv")
+    sample = df.loc[2, "Abstract"]
+    print(sample)

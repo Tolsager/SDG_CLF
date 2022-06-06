@@ -7,13 +7,15 @@ import numpy as np
 
 
 def remove_with_regex(sample: dict, pattern: re.Pattern = None, textname: str = "text"):
-    """Deletes every match with the "pattern".
+    """
+    Deletes every match with the "pattern".
     Sample must have a 'text' feature.
     Is used for the 'map' dataset method
 
     Args:
         sample (dict): a huggingface dataset sample
-        pattern (re.pattern): compiled regex pattern
+        pattern (re.pattern, optional): compiled regex pattern. Defaults to None
+        textname (str, optional): the column name of the text column. Defaults to "text"
 
     returns:
         sample_processed: sample with all regex matches removed
@@ -27,11 +29,12 @@ def preprocess_sample(
         sample: dict,
         tweet: bool = True,
 ):
-    """preprocess a sample of the dataset by editing the text and collecting the labels in a list
+    """
+    Preprocess a sample of the dataset by editing the text and collecting the labels in a list
 
     Args:
         sample (dict): dataset sample
-        tweet (bool): whether the data are tweets or abstracts
+        tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
 
     Returns:
         dict: the preprocessed sample
@@ -74,13 +77,14 @@ def preprocess_dataset(
         multi_label: bool = True,
         tweet: bool = True,
 ):
-    """Loads the tweet CSV into a huggingface dataset and apply the preprocessing
+    """
+    Loads the tweet CSV into a huggingface dataset and apply the preprocessing
 
     Args:
         file (str, optional): path to csv file. Defaults to "data/raw/allSDGtweets.csv".
-        nrows: only used for debugging the preprocessing
-        multi_label: if true only load samples with nclasses==1
-        tweet (bool): whether the data are tweets or abstracts
+        nrows (int, optional): only used for debugging the preprocessing. Defaults to None
+        multi_label (bool, optional): if true only load samples with nclasses==1. Defaults to True
+        tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
 
     Returns:
         datasets.Dataset: a preprocessed dataset
@@ -132,6 +136,16 @@ def preprocess_dataset(
 def split_dataset(
         ds: datasets.Dataset, tweet: bool = True
 ):
+    """
+    Splits the huggingface dataset into a test, training and validation set for tweets and a test and validation set for Scopus Abtracts
+
+    Args:
+        ds (datasets.Dataset): a dataset.
+        tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
+
+    Returns:
+        dict of datasets.Dataset: Dictionary of the splitted dataset
+    """
     ds = ds.shuffle(seed=0)
     if tweet:
         splits = 10
@@ -150,12 +164,13 @@ def split_dataset(
 
 
 def create_base_dataset(tweet: bool = True, nrows: int = None, path_data: str = "data"):
-    """preprocesses the text of the two datasets
+    """
+    Preprocesses the text of the two datasets
 
     Args:
-        tweet (bool): whether the data are tweets or abstracts
-        nrows: only used for debugging
-        path_data: path to data directory
+        tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
+        nrows (int, optional): only used for debugging. Defaults to None
+        path_data (str, optional): path to data directory. Defaults to "data"
 
     Returns:
         None
@@ -178,13 +193,14 @@ def create_base_dataset(tweet: bool = True, nrows: int = None, path_data: str = 
 
 
 def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = True, max_length: int = 260, path_data: str = "data", ):
-    """tokenizes the dataset
+    """
+    Tokenizes the dataset
 
     Args:
-        tokenizer: an instantiated huggingface tokenizer
-        tweet: tweet dataset or scopus
-        max_length: maximum token length used during training
-        path_data: path to data directory
+        tokenizer (transformers.PreTrainedTokenizer): an instantiated huggingface tokenizer
+        tweet (bool, optional): tweet dataset or scopus. Defaults to True
+        max_length (int, optional): maximum token length used during training. Defaults to 260
+        path_data (str, optional): path to data directory. Defaults to "data"
 
     Returns:
         dataset dict with the output from the tokenizer
@@ -214,14 +230,17 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
 
 def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260,
                 overwrite: bool = False, path_data: str = "data", path_tokenizers: str = "tokenizers"):
-    """creates the dataset if it doesn't already exist otherwise it also creates and save it
+    """
+    Creates the dataset if it doesn't already exist otherwise it loads it from the correct folder
 
     Args:
-        tokenizer_type: name of a huggingface tokenizer e.g. bert-base-uncased
-        tweet: if scopus or tweet dataset
-        sample_data: if true only selects 20 samples. Used for debugging
-        max_length: max token length used for training the transformer
-        overwrite: if an existing dataset should be overwritten
+        tokenizer_type (str): name of a huggingface tokenizer e.g. bert-base-uncased
+        tweet (bool, optional): if scopus or tweet dataset. Defaults to True
+        sample_data (bool, optional): if true only selects 20 samples. Used for debugging. Defaults to False
+        max_length (int, optional): max token length used for training the transformer. Defaults to 260
+        overwrite (bool, optional): if an existing dataset should be overwritten. Defaults to False
+        path_data (str, optional): path to data directory. Defaults to "data"
+        path_tokenizers (str, optional): path to tokenizer. Defaults to "tokenizers"
 
     Returns:
         processed dataset for training with transformer outputs and labels
@@ -268,7 +287,18 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
     return ds_dict_tokens
 
 
-def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data="data"):
+def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data: str ="data"):
+    """
+    Load an existing dataset from the files
+
+        Args:
+            tokenizer_type (str): name of a huggingface tokenizer e.g. bert-base-uncased
+            tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
+            path_data (str, optional): path to data directory. Defaults to "data"
+
+        Returns:
+            dict of datasets.Dataset: Dictionary of the splitted dataset
+        """
     path_ds = os.path.join(path_data, "processed", "tweets" if tweet else "scopus")
     path_ds_dict_tokens = os.path.join(path_ds, tokenizer_type)
     ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)

@@ -19,7 +19,6 @@ class Trainer:
     def __init__(
         self,
         model=None,
-        epochs: int = None,
         metrics: dict = None,
         save_metric: str = None,
         criterion: Callable = None,
@@ -28,7 +27,9 @@ class Trainer:
         save_model: bool = False,
         call_tqdm: bool = True,
         log: bool = True,
-        lr: float = 3e-5,
+        hypers: dict = {"learning_rate": 3e-5,
+                        "epochs": 2,
+                        "batch_size": 16},
     ):
         """
         save_filename : str
@@ -40,9 +41,9 @@ class Trainer:
         else:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = model.to(self.device)
-        self.lr = lr
+        self.lr = hypers["learning_rate"]
         self.optimizer = self.set_optimizer(self.model)
-        self.epochs = epochs
+        self.epochs = hypers["epochs"]
         self.save_filename = save_filename
         self.criterion = criterion
         self.save_model = save_model

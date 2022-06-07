@@ -38,7 +38,7 @@ def main(
                     "batch_size": 64,
                     "epochs": 2,
                     "weight_decay": 1e-2},
-    tags: list = ["baseline"],
+    tags: list = None,
     notes: str = "Evaluating baseline model",
 ):
     """main() completes multi_label learning loop for one ROBERTA model using one model.
@@ -57,7 +57,7 @@ def main(
         save_model (bool, optional): Set to true if models should be saved during training. Defaults to False.
         save_metric (str, optional): Determines the metric to compare between models for updating. Defaults to "accuracy".
     """
-    tags = [model_type] + tags
+    tags = [model_type] + tags if tags is not None else [model_type]
     if not log:
         os.environ["WANDB_MODE"] = "offline"
     # Setup W and B project log
@@ -150,8 +150,9 @@ if __name__ == "__main__":
     parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
     parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
     parser.add_argument("-n", "--n_layers", help="number of dense layers before classification head", type=int, default=0)
-    parser.add_argument("-t", "--tags", help="tags for experiment run", type=list, default=["baseline"])
-    parser.add_arguemnt("-nt", "--notes", help="notes for a specific experiment run", type=str, default="run with base parameters")
+    parser.add_argument("-t", "--tags", help="tags for experiment run", nargs="+", default=None)
+    parser.add_argument("-nt", "--notes", help="notes for a specific experiment run", type=str, default="run with base parameters")
+    parser.add_argument("-mt", "--model_type", help="specify model type to train", type=str, default="roberta-base")
     args = parser.parse_args()
     # main(
     #     batch_size=16,
@@ -166,11 +167,10 @@ if __name__ == "__main__":
         multi_label=args.multilabel,
         call_tqdm=True,
         metrics=metrics,
-        model_type="roberta-base",
+        model_type=args.model_type,
         log=args.log,
         sample_data=False,
         save_model=args.save,
-        model=get_model(pretrained_path="pretrained_models/roberta-base", n_layers=args.n_layers),
         hypers={"learning_rate": args.learning_rate,
                 "batch_size": args.batchsize,
                 "epochs": args.epochs,

@@ -6,9 +6,15 @@ import torch
 import ast
 import pickle
 import torchmetrics
+import os
 
 
 def get_scopus_predictions(api: str, split: str = "train", test: bool = False):
+    path_save = "osdg_predictions"
+    if os.path.exists(path_save):
+        choice = input("File 'osdg_predictions' already exists. \n Type '1' to change save path\n Type '2' to overwrite\n")
+        if choice == "1":
+            path_save = input("Type a new file name: ")
     ds_dict = datasets.load_from_disk("data/processed/scopus/base")
     ds = ds_dict[split]
     predictions = []
@@ -29,11 +35,13 @@ def get_scopus_predictions(api: str, split: str = "train", test: bool = False):
             sdg_pred = int(pred[0][4:]) - 1
             prediction_list[sdg_pred] = 1
         predictions.append(prediction_list)
-    with open("osdg_predictions", "wb+") as f:
+    with open(path_save, "wb+") as f:
         pickle.dump(predictions, f)
 
 
 def score_predictions(metrics: dict, path_predictions: str, test: bool = False):
+    for metric in metrics.values():
+        metric.reset()
     ds_dict = datasets.load_from_disk("data/processed/scopus/base")
     ds = ds_dict["train"]
     if test:
@@ -66,5 +74,5 @@ if __name__ == "__main__":
             torchmetrics.F1Score(num_classes=17, multiclass=not multilabel),
     }
     with open("osdg_predictions", "rb") as f:
-        results = score_predictions(metrics, f, test=True)
+        results = score_predictions(metrics, f,)
     print(results)

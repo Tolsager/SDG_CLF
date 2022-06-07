@@ -38,7 +38,7 @@ class Model(nn.Module):
 
         self.block = nn.ModuleList([self.transformer_o] + [self.linear for _ in range(n_layers)]) if n_layers > 0 else None
 
-        self.head = nn.Linear(self.hidden_size, self.n_labels) if n_layers > 0 else nn.Linear(self.hidden_size, self.n_labels)
+        self.head = nn.Linear(self.hidden_size, self.n_labels)
     
     def forward(self, iids, amask):
         transformer_features = self.transformer(input_ids=iids, attention_mask=amask)["last_hidden_state"]
@@ -47,9 +47,7 @@ class Model(nn.Module):
         if self.block is not None:
             for subblock in self.block:
                 x = subblock(x)
-        else:
-            pass
-        x = self.dropout(x)
+            x = self.dropout(x)
         pred = self.head(x)
         out = {"logits": pred}
         return out

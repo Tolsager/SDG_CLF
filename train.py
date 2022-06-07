@@ -166,9 +166,10 @@ if __name__ == "__main__":
         log=args.log,
         sample_data=False,
         save_model=args.save,
-        model=get_model(pretrained_path="pretrained_models/roberta-base"),
+        model=get_model(pretrained_path="pretrained_models/roberta-base", n_layers=args.n_layers),
         hypers={"learning_rate": args.learning_rate,
                 "batch_size": args.batchsize,
                 "epochs": args.epochs,
-                "weight_decay": args.weight_decay},
+                "weight_decay": args.weight_decay,
+                "proj_head_layers": args.n_layers},
     )

@@ -36,9 +36,11 @@ def main(
     model: torch.nn.Module = False,
     save_metric: str = "accuracy",
     hypers: dict = {"learning_rate": 3e-5,
-                    "batch_size": 16,
+                    "batch_size": 64,
                     "epochs": 2,
                     "weight_decay": 1e-2},
+    tags: list = ["baseline"],
+    notes: str = "Evaluating baseline model",
 ):
     """main() completes multi_label learning loop for one ROBERTA model using one model.
     Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
@@ -56,11 +58,12 @@ def main(
         save_model (bool, optional): Set to true if models should be saved during training. Defaults to False.
         save_metric (str, optional): Determines the metric to compare between models for updating. Defaults to "accuracy".
     """
+    tags = [model_type] + tags
     if not log:
         os.environ["WANDB_MODE"] = "offline"
     # Setup W and B project log
     os.environ["WANDB_API_KEY"] = key
-    run = wandb.init(project="sdg_clf", entity="pydqn", config=hypers)
+    run = wandb.init(project="sdg_clf", entity="pydqn", config=hypers, tags=tags, notes=notes)
 
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
@@ -148,6 +151,8 @@ if __name__ == "__main__":
     parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
     parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
     parser.add_argument("-n", "--n_layers", help="number of dense layers before classification head", type=int, default=0)
+    parser.add_argument("-t", "--tags", help="tags for experiment run", type=list, default=["baseline"])
+    parser.add_arguemnt("-nt", "--notes", help="notes for a specific experiment run", type=str, default="run with base parameters")
     args = parser.parse_args()
     # main(
     #     batch_size=16,
@@ -172,4 +177,6 @@ if __name__ == "__main__":
                 "epochs": args.epochs,
                 "weight_decay": args.weight_decay,
                 "proj_head_layers": args.n_layers},
+        tags = args.tags,
+        notes = args.notes,
     )

@@ -36,7 +36,7 @@ class Model(nn.Module):
 
         self.dropout = nn.Dropout(p=0.1)
 
-        self.block = nn.ModuleList([self.transformer_o] + [self.linear for _ in range(n_layers)]) if n_layers > 0 else None
+        self.block = nn.Sequential(*nn.ModuleList([self.transformer_o] + [self.linear for _ in range(n_layers)])) if n_layers > 0 else None
 
         self.head = nn.Linear(self.hidden_size, self.n_labels)
     
@@ -45,8 +45,7 @@ class Model(nn.Module):
         x = transformer_features[:, 0, :]
         x = self.dropout(x)
         if self.block is not None:
-            for subblock in self.block:
-                x = subblock(x)
+            x = self.block(x)
             x = self.dropout(x)
         pred = self.head(x)
         out = {"logits": pred}

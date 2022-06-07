@@ -36,7 +36,7 @@ class Model(nn.Module):
 
         self.dropout = nn.Dropout(p=0.1)
 
-        self.block = nn.Sequential(*nn.ModuleList([self.transformer_o] + [self.linear for _ in range(n_layers)])) if n_layers > 0 else None
+        self.block = nn.Sequential(*nn.ModuleList([self.transformer_o] + [self.linear for _ in range(n_layers)])) if n_layers >= 0 else None
 
         self.head = nn.Linear(self.hidden_size, self.n_labels)
     

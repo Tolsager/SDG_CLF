@@ -208,8 +208,7 @@ class Trainer:
                 log_train["train_loss"] = avg_train_loss
                 log_val = {f"val_{k}": v for k, v in epoch_metrics_val.items()}
                 log_val["val_loss"] = avg_val_loss
-                wandb.log(log_train)
-                wandb.log(log_val)
+                wandb.log(log_train | log_val)
         return self.best_val_metrics
 
     def test(self, test_dataloader):

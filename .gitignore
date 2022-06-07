@@ -9,7 +9,7 @@ data
 EDA_graphs
 playground.py
 .idea
-osdg_ip.py
+eval_osdg/osdg_ip.py
 eval_AURORA/BERT_models/
 
 # Byte-compiled / optimized / DLL files

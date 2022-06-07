@@ -33,7 +33,7 @@ def main(
     log: bool = True,
     save_model: bool = False,
     model: torch.nn.Module = False,
-    save_metric: str = "accuracy",
+    save_metric: str = "f1",
     hypers: dict = {"learning_rate": 3e-5,
                     "batch_size": 16,
                     "epochs": 2,

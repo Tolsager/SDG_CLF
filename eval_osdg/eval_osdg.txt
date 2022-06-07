@@ -1,0 +1,3 @@
+To run the eval_osdg file, an ip address to OSDG.ai's api is required. After being in touch with the OSDG team, we received these ip-addesses.
+
+Read more on: https://osdg.ai/

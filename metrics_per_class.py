@@ -12,7 +12,7 @@ def get_tweet_preds(model, dataloader):
         preds = []
         for sample in tqdm(dataloader):
             with torch.no_grad():
-                pred = model(sample["input_ids"].to("cuda:0")).logits.sigmoid()
+                pred = model(sample["input_ids"].to("cuda:0"), sample["attention_mask"].to("cuda:0")).logits.sigmoid()
                 preds.append(pred)
         with open("tweet_predictions.pkl", "wb") as f:
             pickle.dump(preds, f)
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     else:
         ds_dict = dataset_utils.load_ds_dict("roberta-base", tweet=True, path_data="data")
         val = ds_dict["validation"]
-        val.set_format("pt", columns=["input_ids"])
+        val.set_format("pt", columns=["input_ids", "attention_mask"])
         labels = torch.tensor(val["label"])
         dl = torch.utils.data.DataLoader(val)
 

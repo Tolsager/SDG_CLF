@@ -6,26 +6,27 @@ from datetime import datetime
 import torchmetrics
 import transformers
 import wandb
+import pickle
 from .dataset_utils import load_ds_dict
 import datasets
 
 
 class Trainer:
     def __init__(
-        self,
-        model=None,
-        metrics: dict = None,
-        save_metric: str = None,
-        criterion: Callable = None,
-        save_filename: str = "best_model",
-        gpu_index: int = None,
-        save_model: bool = False,
-        call_tqdm: bool = True,
-        log: bool = True,
-        hypers: dict = {"learning_rate": 3e-5,
-                        "epochs": 2,
-                        "batch_size": 16,
-                        "weight_decay": 1e-2},
+            self,
+            model=None,
+            metrics: dict = None,
+            save_metric: str = None,
+            criterion: Callable = None,
+            save_filename: str = "best_model",
+            gpu_index: int = None,
+            save_model: bool = False,
+            call_tqdm: bool = True,
+            log: bool = True,
+            hypers: dict = {"learning_rate": 3e-5,
+                            "epochs": 2,
+                            "batch_size": 16,
+                            "weight_decay": 1e-2},
     ):
         """
         Class initializer
@@ -332,7 +333,6 @@ class Trainer:
             self.metrics[k]["metric"] = v["metric"].to(self.device)
 
 
-
 class SDGTrainer(Trainer):
     def __init__(self, tokenizer=None, *args, **kwargs):
         """
@@ -388,7 +388,8 @@ class SDGTrainer(Trainer):
         Returns:
             Adam optimizer with improved weight decay
         """
-        optimizer = torch.optim.AdamW(model.parameters(), lr=self.hypers["learning_rate"], weight_decay=self.hypers["weight_decay"])
+        optimizer = torch.optim.AdamW(model.parameters(), lr=self.hypers["learning_rate"],
+                                      weight_decay=self.hypers["weight_decay"])
         return optimizer
 
     def update_metrics(self, step_outputs: dict):
@@ -422,10 +423,10 @@ class SDGTrainer(Trainer):
         input_ids = [input_ids[x:x + max_length - 2] for x in range(0, len(input_ids), step_size)]
         attention_masks = []
         for i in range(len(input_ids)):
-            input_ids[i] = [tokenizer.cls_token_id] + input_ids[i] + [tokenizer.eos_token_id]
+            input_ids[i] = [self.tokenizer.cls_token_id] + input_ids[i] + [self.tokenizer.eos_token_id]
             attention_mask = [1] * len(input_ids[i])
             while len(input_ids[i]) < max_length:
-                input_ids[i] += [tokenizer.pad_token_id]
+                input_ids[i] += [self.tokenizer.pad_token_id]
                 attention_mask += [0]
             attention_masks.append(attention_mask)
 
@@ -464,7 +465,7 @@ class SDGTrainer(Trainer):
         predictions = []
         labels = []
         threshold_results = {}
-        best_f1 = (0,0)
+        best_f1 = (0, 0)
         for sample in dataloader:
             with torch.no_grad():
                 input_ids = sample["input_ids"]
@@ -478,7 +479,8 @@ class SDGTrainer(Trainer):
             self.metrics = get_metrics(threshold)
             self.set_metrics_to_device()
             self.reset_metrics()
-            self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device), "prediction": torch.stack(predictions, dim=0).to(self.device)})
+            self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device),
+                                 "prediction": torch.stack(predictions, dim=0).to(self.device)})
             metrics = self.compute_metrics()
             if metrics["f1"] > best_f1[1]:
                 best_f1 = (threshold, metrics["f1"])
@@ -494,17 +496,36 @@ class SDGTrainer(Trainer):
         return prediction.tolist()
 
 
+def get_metrics(threshold, multilabel=False, num_classes=17):
+    metrics = {
+        "accuracy": {
+            "goal": "maximize",
+            "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
+        },
+        "auroc": {
+            "goal": "maximize",
+            "metric": torchmetrics.AUROC(num_classes=num_classes),
+        },
+        "precision": {
+            "goal": "maximize",
+            "metric": torchmetrics.Precision(threshold=threshold, num_classes=num_classes,
+                                             multiclass=not multilabel),
+        },
+        "recall": {
+            "goal": "maximize",
+            "metric": torchmetrics.Recall(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
+        },
+        "f1": {
+            "goal": "maximize",
+            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
+        },
+    }
+    return metrics
+
 
 if __name__ == "__main__":
     # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
-    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
-    test = ds_dict["test"]
     # sample = test["Abstract"][0]
-    tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
-    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
-                                                                                num_labels=17)
-    sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load("../playful-sunset-10_0603190924.pt"))
     # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
     # print(prediction)
@@ -515,34 +536,15 @@ if __name__ == "__main__":
     #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
     #     }
     # }
-    def get_metrics(threshold):
-        multilabel = True
-        metrics = {
-        "accuracy": {
-            "goal": "maximize",
-            "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
-        },
-        "auroc": {
-            "goal": "maximize",
-            "metric": torchmetrics.AUROC(num_classes=17),
-        },
-        "precision": {
-            "goal": "maximize",
-            "metric": torchmetrics.Precision(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-        "recall": {
-            "goal": "maximize",
-            "metric": torchmetrics.Recall(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-        "f1": {
-            "goal": "maximize",
-            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-                }
-        return metrics
+    tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
+    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
+                                                                                num_labels=17)
+    sdg_model.cuda()
+    sdg_model.load_state_dict(torch.load("../playful-sunset-10_0603190924.pt"))
 
-    trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
+    # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # print(prediction)
-    test.set_format("pt", columns=["input_ids", "label"])
-    dl = torch.utils.data.DataLoader(test)
-    trainer.test_scopus(dl)
+    # test.set_format("pt", columns=["input_ids", "label"])
+    # dl = torch.utils.data.DataLoader(test)
+    # res = trainer.test_scopus(dl)
+    # print(res[0][res[1][0]], res[1][0])

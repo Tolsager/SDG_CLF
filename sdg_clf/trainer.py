@@ -437,7 +437,7 @@ class SDGTrainer(Trainer):
         attention_mask = torch.tensor(attention_masks, device=self.device)
         return {"input_ids": input_ids, "attention_mask": attention_mask}
 
-    def long_text_step(self, model_outputs: torch.Tensor, strategy: str):
+    def long_text_step(self, model_outputs: torch.Tensor):
         """
         Completes one prediction step for one model input sample
 
@@ -447,13 +447,10 @@ class SDGTrainer(Trainer):
         Returns:
             model output classification results
         """
-        if strategy == "mean":
-            prediction = torch.mean(model_outputs, dim=0)
-        elif strategy == "max":
-            prediction = torch.max(model_outputs, dim=0)
+        prediction = torch.mean(model_outputs, dim=0)
         return prediction
 
-    def test_scopus(self, dataloader, max_length: int = 260, strategy: str = "mean", step_size=260):
+    def test_scopus_mean(self, dataloader, max_length: int = 260, step_size=260, return_all_metrics=False):
         """
         Testing the classification performance of the model based on long texts
 
@@ -476,7 +473,7 @@ class SDGTrainer(Trainer):
                 labels.append(label)
                 model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length, step_size=step_size)
                 model_outputs = self.model(**model_inputs).logits.sigmoid()
-                prediction = self.long_text_step(model_outputs, strategy=strategy)
+                prediction = self.long_text_step(model_outputs)
                 predictions.append(prediction)
         for threshold in np.linspace(0, 1, 101):
             self.metrics = get_metrics(threshold)
@@ -487,7 +484,41 @@ class SDGTrainer(Trainer):
             metrics = self.compute_metrics()
             if metrics["f1"] > best_f1[1]:
                 best_f1 = (threshold, metrics["f1"])
-            threshold_results[threshold] = metrics
+                if not return_all_metrics:
+                    threshold_results = metrics
+            if return_all_metrics:
+                threshold_results[threshold] = metrics
+        return threshold_results, best_f1
+
+    def test_scopus_any(self, dataloader, max_length: int = 260, step_size=260):
+        self.model.eval()
+        model_outputs_all = []
+        labels = []
+        best_f1 = (0, 0)
+        for sample in dataloader:
+            with torch.no_grad():
+                input_ids = sample["input_ids"]
+                label = torch.squeeze(sample["label"], dim=0)
+                labels.append(label)
+                model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length, step_size=step_size)
+                model_outputs = self.model(**model_inputs).logits.sigmoid()
+                model_outputs_all.append(model_outputs)
+
+        self.metrics = get_metrics(0.5)
+        self.set_metrics_to_device()
+        for threshold in np.linspace(0, 1, 101):
+            predictions = []
+            for o in model_outputs_all:
+                prediction = torch.any(o > threshold, dim=0).int()
+                predictions.append(prediction)
+
+            self.reset_metrics()
+            self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device),
+                                 "prediction": torch.stack(predictions, dim=0).to(self.device)})
+            metrics = self.compute_metrics()
+            if metrics["f1"] > best_f1[1]:
+                best_f1 = (threshold, metrics["f1"])
+                threshold_results = metrics
         return threshold_results, best_f1
 
     def infer_sample(self, text: str, step_size: int = 260, max_length: int = 260, strategy: str = "mean"):
@@ -495,9 +526,10 @@ class SDGTrainer(Trainer):
         input_ids = self.tokenizer(text, add_special_tokens=False, return_attention_mask=False)["input_ids"]
         model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length, step_size=step_size)
         model_outputs = self.model(**model_inputs).logits.sigmoid()
-        prediction = self.long_text_step(model_outputs, strategy=strategy)
+        prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
 
+<<<<<<< HEAD
 
 def get_metrics(threshold, multilabel=False, num_classes=17):
     metrics = {
@@ -527,8 +559,6 @@ def get_metrics(threshold, multilabel=False, num_classes=17):
 
 
 if __name__ == "__main__":
-    # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
-    # sample = test["Abstract"][0]
     # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
     # print(prediction)
@@ -551,3 +581,5 @@ if __name__ == "__main__":
     # dl = torch.utils.data.DataLoader(test)
     # res = trainer.test_scopus(dl)
     # print(res[0][res[1][0]], res[1][0])
+    trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
+    # print(prediction)

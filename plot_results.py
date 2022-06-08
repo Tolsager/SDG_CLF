@@ -1,13 +1,14 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 sns.set()
 import numpy as np
 import pandas as pd
 from matplotlib.gridspec import GridSpec
 
-
 if __name__ == '__main__':
     import wandb
+
     api = wandb.Api()
     run = api.run("pydqn/sdg_clf/1wbmr3oy")
     history = run.history()
@@ -27,7 +28,8 @@ if __name__ == '__main__':
     plots = [f1, loss, accuracy, precision, recall]
     metrics = ["f1", "loss", "accuracy", "precision", "recall"]
     for plot, metric in zip(plots, metrics):
-        plot.plot(range(10),history["train_"+metric][np.arange(10)*2] if run_type == "train" else history["val_"+metric][1+(np.arange(10)*2)], linewidth=3)
+        plot.plot(range(10), history["train_" + metric][np.arange(10) * 2] if run_type == "train" \
+                  else history["val_" + metric][1 + (np.arange(10) * 2)], linewidth=3)
         plot.set_title(metric.capitalize(), fontsize=18)
         plot.set_xlabel("Epochs", fontsize=13)
         plot.set_xticks(range(10), range(10))

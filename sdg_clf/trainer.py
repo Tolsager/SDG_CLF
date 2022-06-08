@@ -529,7 +529,6 @@ class SDGTrainer(Trainer):
         prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
 
-<<<<<<< HEAD
 
 def get_metrics(threshold, multilabel=False, num_classes=17):
     metrics = {

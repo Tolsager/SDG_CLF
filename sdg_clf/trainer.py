@@ -526,59 +526,33 @@ class SDGTrainer(Trainer):
         prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
 
-
 def get_metrics(threshold):
     multilabel = True
     metrics = {
-        "accuracy": {
-            "goal": "maximize",
-            "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
-        },
-        "auroc": {
-            "goal": "maximize",
-            "metric": torchmetrics.AUROC(num_classes=17),
-        },
-        "precision": {
-            "goal": "maximize",
-            "metric": torchmetrics.Precision(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-        "recall": {
-            "goal": "maximize",
-            "metric": torchmetrics.Recall(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-        "f1": {
-            "goal": "maximize",
-            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-    }
+    "accuracy": {
+        "goal": "maximize",
+        "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
+    },
+    "auroc": {
+        "goal": "maximize",
+        "metric": torchmetrics.AUROC(num_classes=17),
+    },
+    "precision": {
+        "goal": "maximize",
+        "metric": torchmetrics.Precision(threshold=threshold, num_classes=17, multiclass=not multilabel),
+    },
+    "recall": {
+        "goal": "maximize",
+        "metric": torchmetrics.Recall(threshold=threshold, num_classes=17, multiclass=not multilabel),
+    },
+    "f1": {
+        "goal": "maximize",
+        "metric": torchmetrics.F1Score(threshold=threshold, num_classes=17, multiclass=not multilabel),
+    },
+            }
     return metrics
 
 if __name__ == "__main__":
-    def get_metrics(threshold):
-        multilabel = True
-        metrics = {
-            "accuracy": {
-                "goal": "maximize",
-                "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
-            },
-            "auroc": {
-                "goal": "maximize",
-                "metric": torchmetrics.AUROC(num_classes=17),
-            },
-            "precision": {
-                "goal": "maximize",
-                "metric": torchmetrics.Precision(threshold=threshold, num_classes=17, multiclass=not multilabel),
-            },
-            "recall": {
-                "goal": "maximize",
-                "metric": torchmetrics.Recall(threshold=threshold, num_classes=17, multiclass=not multilabel),
-            },
-            "f1": {
-                "goal": "maximize",
-                "metric": torchmetrics.F1Score(threshold=threshold, num_classes=17, multiclass=not multilabel),
-            },
-        }
-        return metrics
     # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
     ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
     test = ds_dict["test"]
@@ -587,14 +561,11 @@ if __name__ == "__main__":
     sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
                                                                                 num_labels=17)
     sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load("../pretrained_models/best_model_0603141006.pt"))
 
     trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     test.set_format("pt", columns=["input_ids", "label"])
     dl = torch.utils.data.DataLoader(test)
-    print(trainer.test_scopus_any(dl, step_size=260, max_length=260))
-    assert False
-
+    sdg_model.load_state_dict(torch.load("../best_model_0603190924.pt"))
     # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
     # print(prediction)
@@ -605,8 +576,6 @@ if __name__ == "__main__":
     #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
     #     }
     # }
-
-
     trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # print(prediction)
     test.set_format("pt", columns=["input_ids", "label"])

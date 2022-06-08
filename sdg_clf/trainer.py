@@ -6,26 +6,26 @@ from datetime import datetime
 import torchmetrics
 import transformers
 import wandb
-from dataset_utils import load_ds_dict
+from .dataset_utils import load_ds_dict
 import datasets
 
 
 class Trainer:
     def __init__(
-        self,
-        model=None,
-        metrics: dict = None,
-        save_metric: str = None,
-        criterion: Callable = None,
-        save_filename: str = "best_model",
-        gpu_index: int = None,
-        save_model: bool = False,
-        call_tqdm: bool = True,
-        log: bool = True,
-        hypers: dict = {"learning_rate": 3e-5,
-                        "epochs": 2,
-                        "batch_size": 16,
-                        "weight_decay": 1e-2},
+            self,
+            model=None,
+            metrics: dict = None,
+            save_metric: str = None,
+            criterion: Callable = None,
+            save_filename: str = "best_model",
+            gpu_index: int = None,
+            save_model: bool = False,
+            call_tqdm: bool = True,
+            log: bool = True,
+            hypers: dict = {"learning_rate": 3e-5,
+                            "epochs": 2,
+                            "batch_size": 16,
+                            "weight_decay": 1e-2},
     ):
         """
         Class initializer
@@ -333,7 +333,6 @@ class Trainer:
             self.metrics[k]["metric"] = v["metric"].to(self.device)
 
 
-
 class SDGTrainer(Trainer):
     def __init__(self, tokenizer=None, *args, **kwargs):
         """
@@ -389,7 +388,8 @@ class SDGTrainer(Trainer):
         Returns:
             Adam optimizer with improved weight decay
         """
-        optimizer = torch.optim.AdamW(model.parameters(), lr=self.hypers["learning_rate"], weight_decay=self.hypers["weight_decay"])
+        optimizer = torch.optim.AdamW(model.parameters(), lr=self.hypers["learning_rate"],
+                                      weight_decay=self.hypers["weight_decay"])
         return optimizer
 
     def update_metrics(self, step_outputs: dict):
@@ -423,10 +423,10 @@ class SDGTrainer(Trainer):
         input_ids = [input_ids[x:x + max_length - 2] for x in range(0, len(input_ids), step_size)]
         attention_masks = []
         for i in range(len(input_ids)):
-            input_ids[i] = [tokenizer.cls_token_id] + input_ids[i] + [tokenizer.eos_token_id]
+            input_ids[i] = [self.tokenizer.cls_token_id] + input_ids[i] + [self.tokenizer.eos_token_id]
             attention_mask = [1] * len(input_ids[i])
             while len(input_ids[i]) < max_length:
-                input_ids[i] += [tokenizer.pad_token_id]
+                input_ids[i] += [self.tokenizer.pad_token_id]
                 attention_mask += [0]
             attention_masks.append(attention_mask)
 
@@ -434,7 +434,7 @@ class SDGTrainer(Trainer):
         attention_mask = torch.tensor(attention_masks, device=self.device)
         return {"input_ids": input_ids, "attention_mask": attention_mask}
 
-    def long_text_step(self, model_outputs: torch.Tensor, strategy: str):
+    def long_text_step(self, model_outputs: torch.Tensor):
         """
         Completes one prediction step for one model input sample
 
@@ -444,13 +444,10 @@ class SDGTrainer(Trainer):
         Returns:
             model output classification results
         """
-        if strategy == "mean":
-            prediction = torch.mean(model_outputs, dim=0)
-        elif strategy == "max":
-            prediction = torch.max(model_outputs, dim=0)
+        prediction = torch.mean(model_outputs, dim=0)
         return prediction
 
-    def test_scopus(self, dataloader, max_length: int = 260, strategy: str = "mean", step_size=260):
+    def test_scopus_mean(self, dataloader, max_length: int = 260, step_size=260, return_all_metrics=False):
         """
         Testing the classification performance of the model based on long texts
 
@@ -465,7 +462,7 @@ class SDGTrainer(Trainer):
         predictions = []
         labels = []
         threshold_results = {}
-        best_f1 = (0,0)
+        best_f1 = (0, 0)
         for sample in dataloader:
             with torch.no_grad():
                 input_ids = sample["input_ids"]
@@ -473,17 +470,52 @@ class SDGTrainer(Trainer):
                 labels.append(label)
                 model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length, step_size=step_size)
                 model_outputs = self.model(**model_inputs).logits.sigmoid()
-                prediction = self.long_text_step(model_outputs, strategy=strategy)
+                prediction = self.long_text_step(model_outputs)
                 predictions.append(prediction)
         for threshold in np.linspace(0, 1, 101):
             self.metrics = get_metrics(threshold)
             self.set_metrics_to_device()
             self.reset_metrics()
-            self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device), "prediction": torch.stack(predictions, dim=0).to(self.device)})
+            self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device),
+                                 "prediction": torch.stack(predictions, dim=0).to(self.device)})
             metrics = self.compute_metrics()
             if metrics["f1"] > best_f1[1]:
                 best_f1 = (threshold, metrics["f1"])
-            threshold_results[threshold] = metrics
+                if not return_all_metrics:
+                    threshold_results = metrics
+            if return_all_metrics:
+                threshold_results[threshold] = metrics
+        return threshold_results, best_f1
+
+    def test_scopus_any(self, dataloader, max_length: int = 260, step_size=260):
+        self.model.eval()
+        model_outputs_all = []
+        labels = []
+        best_f1 = (0, 0)
+        for sample in dataloader:
+            with torch.no_grad():
+                input_ids = sample["input_ids"]
+                label = torch.squeeze(sample["label"], dim=0)
+                labels.append(label)
+                model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length, step_size=step_size)
+                model_outputs = self.model(**model_inputs).logits.sigmoid()
+                model_outputs_all.append(model_outputs)
+
+        self.metrics = get_metrics(0.5)
+        self.set_metrics_to_device()
+        for threshold in np.linspace(0, 1, 101):
+            predictions = []
+            for o in model_outputs_all:
+                prediction = torch.any(o > threshold, dim=0).int()
+                predictions.append(prediction)
+
+            self.reset_metrics()
+            self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device),
+                                 "prediction": torch.stack(predictions, dim=0).to(self.device)})
+            metrics = self.compute_metrics()
+            if metrics["f1"] > best_f1[1]:
+                best_f1 = (threshold, metrics["f1"])
+                threshold_results = metrics
         return threshold_results, best_f1
 
     def infer_sample(self, text: str, step_size: int = 260, max_length: int = 260, strategy: str = "mean"):
@@ -491,34 +523,13 @@ class SDGTrainer(Trainer):
         input_ids = self.tokenizer(text, add_special_tokens=False, return_attention_mask=False)["input_ids"]
         model_inputs = self.prepare_long_text_input(input_ids, max_length=max_length, step_size=step_size)
         model_outputs = self.model(**model_inputs).logits.sigmoid()
-        prediction = self.long_text_step(model_outputs, strategy=strategy)
+        prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
 
 
-
-if __name__ == "__main__":
-    # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
-    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
-    test = ds_dict["test"]
-    # sample = test["Abstract"][0]
-    tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
-    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
-                                                                                num_labels=17)
-    sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load("../best_model_0603190924.pt"))
-    # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
-    # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
-    # print(prediction)
-    # model_inputs = trainer.prepare_long_text_input(sample)
-    # metrics = {
-    #     "accuracy": {
-    #         "goal": "maximize",
-    #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
-    #     }
-    # }
-    def get_metrics(threshold):
-        multilabel = True
-        metrics = {
+def get_metrics(threshold):
+    multilabel = True
+    metrics = {
         "accuracy": {
             "goal": "maximize",
             "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
@@ -539,11 +550,65 @@ if __name__ == "__main__":
             "goal": "maximize",
             "metric": torchmetrics.F1Score(threshold=threshold, num_classes=17, multiclass=not multilabel),
         },
-                }
+    }
+    return metrics
+
+if __name__ == "__main__":
+    def get_metrics(threshold):
+        multilabel = True
+        metrics = {
+            "accuracy": {
+                "goal": "maximize",
+                "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
+            },
+            "auroc": {
+                "goal": "maximize",
+                "metric": torchmetrics.AUROC(num_classes=17),
+            },
+            "precision": {
+                "goal": "maximize",
+                "metric": torchmetrics.Precision(threshold=threshold, num_classes=17, multiclass=not multilabel),
+            },
+            "recall": {
+                "goal": "maximize",
+                "metric": torchmetrics.Recall(threshold=threshold, num_classes=17, multiclass=not multilabel),
+            },
+            "f1": {
+                "goal": "maximize",
+                "metric": torchmetrics.F1Score(threshold=threshold, num_classes=17, multiclass=not multilabel),
+            },
+        }
         return metrics
+    # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
+    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
+    test = ds_dict["test"]
+    # sample = test["Abstract"][0]
+    tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
+    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
+                                                                                num_labels=17)
+    sdg_model.cuda()
+    sdg_model.load_state_dict(torch.load("../pretrained_models/best_model_0603141006.pt"))
+
+    trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
+    test.set_format("pt", columns=["input_ids", "label"])
+    dl = torch.utils.data.DataLoader(test)
+    print(trainer.test_scopus_any(dl, step_size=260, max_length=260))
+    assert False
+
+    # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
+    # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
+    # print(prediction)
+    # model_inputs = trainer.prepare_long_text_input(sample)
+    # metrics = {
+    #     "accuracy": {
+    #         "goal": "maximize",
+    #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
+    #     }
+    # }
+
 
     trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # print(prediction)
     test.set_format("pt", columns=["input_ids", "label"])
     dl = torch.utils.data.DataLoader(test)
-    trainer.test_scopus(dl)
+    trainer.test_scopus_mean(dl)

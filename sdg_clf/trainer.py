@@ -504,7 +504,7 @@ if __name__ == "__main__":
     sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
                                                                                 num_labels=17)
     sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load("../best_model_0603190924.pt"))
+    sdg_model.load_state_dict(torch.load("../playful-sunset-10_0603190924.pt"))
     # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
     # print(prediction)

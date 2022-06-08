@@ -494,7 +494,31 @@ class SDGTrainer(Trainer):
         prediction = self.long_text_step(model_outputs, strategy=strategy)
         return prediction.tolist()
 
-
+def get_metrics(threshold):
+    multilabel = True
+    metrics = {
+    "accuracy": {
+        "goal": "maximize",
+        "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
+    },
+    "auroc": {
+        "goal": "maximize",
+        "metric": torchmetrics.AUROC(num_classes=17),
+    },
+    "precision": {
+        "goal": "maximize",
+        "metric": torchmetrics.Precision(threshold=threshold, num_classes=17, multiclass=not multilabel),
+    },
+    "recall": {
+        "goal": "maximize",
+        "metric": torchmetrics.Recall(threshold=threshold, num_classes=17, multiclass=not multilabel),
+    },
+    "f1": {
+        "goal": "maximize",
+        "metric": torchmetrics.F1Score(threshold=threshold, num_classes=17, multiclass=not multilabel),
+    },
+            }
+    return metrics
 
 if __name__ == "__main__":
     # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
@@ -516,31 +540,6 @@ if __name__ == "__main__":
     #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
     #     }
     # }
-    def get_metrics(threshold):
-        multilabel = True
-        metrics = {
-        "accuracy": {
-            "goal": "maximize",
-            "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
-        },
-        "auroc": {
-            "goal": "maximize",
-            "metric": torchmetrics.AUROC(num_classes=17),
-        },
-        "precision": {
-            "goal": "maximize",
-            "metric": torchmetrics.Precision(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-        "recall": {
-            "goal": "maximize",
-            "metric": torchmetrics.Recall(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-        "f1": {
-            "goal": "maximize",
-            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=17, multiclass=not multilabel),
-        },
-                }
-        return metrics
 
     trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # print(prediction)

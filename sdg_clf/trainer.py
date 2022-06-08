@@ -1,3 +1,5 @@
+import os
+
 import torch
 import numpy as np
 from typing import Callable, Union
@@ -172,9 +174,10 @@ class Trainer:
                     new_best = True
 
                 if new_best:
+                    os.makedirs(f"models/{self.model}", exist_ok=True)
                     torch.save(
                         self.model.state_dict(),
-                        self.save_filename + "_" + self.time + ".pt",
+                        f"models/{self.model}/{self.save_filename}_{self.time}.pt",
                     )
 
             for k, v in epoch_metrics_val.items():

@@ -24,12 +24,13 @@ def get_tweet_preds(model, dataloader):
 
 if __name__ == '__main__':
     eval_set = "tweet"
+    model = "roberta-base"
 
-    tokenizer = transformers.AutoTokenizer.from_pretrained("tokenizers/roberta-base")
-    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("pretrained_models/roberta-base",
+    tokenizer = transformers.AutoTokenizer.from_pretrained(f"tokenizers/{model}")
+    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained(f"pretrained_models/{model}",
                                                                                 num_labels=17)
     sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load("playful-sunset-10_0603190924.pt"))
+    sdg_model.load_state_dict(torch.load(f"models/{model}/playful-sunset-10_0603190924.pt"))
 
     metrics = trainer.get_metrics(0.26, True, num_classes=1)
 

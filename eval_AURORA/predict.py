@@ -21,7 +21,7 @@ import datasets
 df = datasets.load_from_disk("../data/processed/scopus/base")
 DATA=df['train']['Abstract']
 
-MODELS="./BERT_models" # MODELS need to be a directory where the models are located. (Multi-lingual BERT, .h5 format a Hierarchical Data Format (HDF) version 5)
+MODELS="./BERT_models/" # MODELS need to be a directory where the models are located. (Multi-lingual BERT, .h5 format a Hierarchical Data Format (HDF) version 5)
 
 SAVE_PREDICTIONS_TO="./predictions" # SAVE_PREDICTIONS_TO need to be a directory where the output file with the predictions is written to.
 
@@ -29,8 +29,8 @@ SAVE_PREDICTIONS_TO="./predictions" # SAVE_PREDICTIONS_TO need to be a directory
 ## Example:
 textcorpus_df=pd.read_excel("C:/SDG/data/dutch_texts.xlsx", sheet_name=2) # Load excel sheet as dataframe
 DATA=list(textcorpus_df.abstract) # get column with abstracts and transform as python list
-MODELS="C:/SDG/models/SDG model v0.1" #
-SAVE_PREDICTIONS_TO="C:/SDG/predictions/"
+MODELS="C:/SDG/models/SDG model v0.1/" #
+SAVE_PREDICTIONS_TO="C:/SDG/predictions"
 """
 
 # PREPROCESS TEXTS
@@ -102,7 +102,7 @@ def create_attention_masks(inputs):
 
 # PREDICT
 
-def float_to_percent(float, decimal=3):
+def float_to_percents(float, decimal=3):
     """Takes a float from range 0. to 0.9... as an input
     and converts it to a percentage with specified decimal places.
     """
@@ -120,10 +120,11 @@ def models_predict(directory, inputs, attention_masks, float_to_percent=False):
     predictions_dict={}
     for _ in models:
         model=tf.keras.models.load_model(_)
-        predictions=model.predict_step([inputs, attention_masks])
+        #predictions=model.predict_step([inputs, attention_masks])
+        predictions = model.predict([inputs, attention_masks])
         predictions=[float(_) for _ in predictions]
         if float_to_percent==True:
-            predictions=[float_to_percent(_) for _ in predictions]
+            predictions=[float_to_percents(_) for _ in predictions]
         predictions_dict[model.name]=predictions
         del predictions, model
     return predictions_dict

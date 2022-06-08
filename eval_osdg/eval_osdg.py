@@ -43,7 +43,7 @@ def get_scopus_predictions(api: str, split: str = "train", test: bool = False):
         pickle.dump(predictions, f)
 
 
-def score_predictions(metrics: dict, path_predictions: str, test: bool = False, strategy: str):
+def score_predictions(metrics: dict, path_predictions: str, test: bool = False):
     for metric in metrics.values():
         metric.reset()
     ds_dict = datasets.load_from_disk("../data/processed/scopus/base")

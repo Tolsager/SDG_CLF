@@ -29,12 +29,16 @@ def get_scopus_predictions(api: str, split: str = "train", test: bool = False):
         data = {"query": text}
         prediction = requests.post(ip, data=data)
         prediction = prediction.text
-        prediction = ast.literal_eval(prediction)
-        prediction_list = [0] * 17
-        for pred in prediction:
-            sdg_pred = int(pred[0][4:]) - 1
-            prediction_list[sdg_pred] = 1
-        predictions.append(prediction_list)
+        # prediction = ast.literal_eval(prediction)
+        # prediction_list = [0] * 17
+        # for pred in prediction:
+        #     sdg_pred = int(pred[0][4:]) - 1
+        #     prediction_list[sdg_pred] = 1
+
+
+
+        # predictions.append(prediction_list)
+        predictions.append(prediction)
     with open(path_save, "wb+") as f:
         pickle.dump(predictions, f)
 
@@ -46,7 +50,8 @@ def score_predictions(metrics: dict, path_predictions: str, test: bool = False):
     ds = ds_dict["train"]
     if test:
         ds = ds.select([0, 1])
-    predictions = pickle.load(path_predictions)
+    with open(path_predictions, "rb") as f:
+        predictions = pickle.load(f)
     predictions = torch.tensor(predictions)
     labels = ds["label"]
     labels = torch.tensor(labels)
@@ -58,8 +63,24 @@ def score_predictions(metrics: dict, path_predictions: str, test: bool = False):
     return results
 
 
+def debug_osdg():
+    with open("osdg_predictions", "rb") as f:
+        predictions = pickle.load(f)
+
+    ds_dict = datasets.load_from_disk("../data/processed/scopus/base")
+    ds = ds_dict["train"]
+    texts = ds["Abstract"]
+    labels = ds["label"]
+    for i in range(len(predictions)):
+        text = texts[i]
+        label = labels[i]
+        prediction = predictions[i]
+
+
 if __name__ == "__main__":
-    get_scopus_predictions(api="first")
+    # debug_osdg()
+    get_scopus_predictions(api="first", )
+    assert False
     multilabel = True
     metrics = {
         "accuracy":
@@ -73,6 +94,5 @@ if __name__ == "__main__":
         "f1":
             torchmetrics.F1Score(num_classes=17, multiclass=not multilabel),
     }
-    with open("osdg_predictions", "rb") as f:
-        results = score_predictions(metrics, f,)
+    results = score_predictions(metrics, "osdg_predictions",)
     print(results)

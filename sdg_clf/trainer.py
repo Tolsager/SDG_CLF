@@ -518,13 +518,8 @@ class SDGTrainer(Trainer):
             metrics = self.compute_metrics()
             if metrics["f1"] > best_f1[1]:
                 best_f1 = (threshold, metrics["f1"])
-<<<<<<< HEAD
-            threshold_results[threshold] = metrics
-        return best_f1, threshold_results[best_f1[0]]
-=======
                 threshold_results = metrics
         return threshold_results, best_f1
->>>>>>> bc5ddf4467f8132597691718f2336325e2ba408b
 
     def infer_sample(self, text: str, step_size: int = 260, max_length: int = 260, strategy: str = "mean"):
         text = text.lower()
@@ -535,35 +530,8 @@ class SDGTrainer(Trainer):
         return prediction.tolist()
 
 
-<<<<<<< HEAD
-
-if __name__ == "__main__":
-    # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
-    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="data")
-    test = ds_dict["test"]
-    # sample = test["Abstract"][0]
-    tokenizer = transformers.AutoTokenizer.from_pretrained("tokenizers/roberta-base")
-    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("pretrained_models/roberta-base",
-                                                                                num_labels=17)
-    sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load("playful-sunset-10_0603190924.pt"))
-    # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
-    # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
-    # print(prediction)
-    # model_inputs = trainer.prepare_long_text_input(sample)
-    # metrics = {
-    #     "accuracy": {
-    #         "goal": "maximize",
-    #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
-    #     }
-    # }
-    def get_metrics(threshold):
-        multilabel = True
-        metrics = {
-=======
 def get_metrics(threshold, multilabel=False, num_classes=17):
     metrics = {
->>>>>>> bc5ddf4467f8132597691718f2336325e2ba408b
         "accuracy": {
             "goal": "maximize",
             "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
@@ -594,12 +562,6 @@ if __name__ == "__main__":
     # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
     # print(prediction)
     # model_inputs = trainer.prepare_long_text_input(sample)
-    # metrics = {
-    #     "accuracy": {
-    #         "goal": "maximize",
-    #         "metric": torchmetrics.Accuracy(subset_accuracy=True),
-    #     }
-    # }
     tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
     sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
                                                                                 num_labels=17)
@@ -612,11 +574,3 @@ if __name__ == "__main__":
     # dl = torch.utils.data.DataLoader(test)
     # res = trainer.test_scopus(dl)
     # print(res[0][res[1][0]], res[1][0])
-    trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
-    # print(prediction)
-<<<<<<< HEAD
-    test.set_format("pt", columns=["input_ids", "label"])
-    dl = torch.utils.data.DataLoader(test)
-    print(trainer.test_scopus(dl))
-=======
->>>>>>> bc5ddf4467f8132597691718f2336325e2ba408b

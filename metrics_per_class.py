@@ -24,18 +24,18 @@ def get_tweet_preds(model, dataloader):
 
 if __name__ == '__main__':
     eval_set = "tweet"
-    model = "roberta-base"
+    model = "roberta-large"
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(f"tokenizers/{model}")
     sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained(f"pretrained_models/{model}",
                                                                                 num_labels=17)
     sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load(f"models/{model}/playful-sunset-10_0603190924.pt"))
+    sdg_model.load_state_dict(torch.load(f"models/{model}/brisk-cosmos-39_0608113410.pt"))
 
     metrics = trainer.get_metrics(0.26, True, num_classes=1)
 
     if eval_set == "scopus":
-        ds_dict = dataset_utils.load_ds_dict("roberta-base", tweet=False, path_data="data")
+        ds_dict = dataset_utils.load_ds_dict(f"{model}", tweet=False, path_data="data")
         test = ds_dict["test"]
         labels = torch.tensor(test["label"])
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
         preds = torch.stack(preds, dim=0)
 
     else:
-        ds_dict = dataset_utils.load_ds_dict("roberta-base", tweet=True, path_data="data")
+        ds_dict = dataset_utils.load_ds_dict(f"{model}", tweet=True, path_data="data")
         val = ds_dict["validation"]
         val.set_format("pt", columns=["input_ids", "attention_mask"])
         labels = torch.tensor(val["label"])

@@ -476,7 +476,7 @@ class SDGTrainer(Trainer):
                 prediction = self.long_text_step(model_outputs)
                 predictions.append(prediction)
         for threshold in np.linspace(0, 1, 101):
-            self.metrics = get_metrics(threshold)
+            self.metrics = get_metrics(threshold=threshold, multilabel=True)
             self.set_metrics_to_device()
             self.reset_metrics()
             self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device),
@@ -534,7 +534,7 @@ def get_metrics(threshold, multilabel=False, num_classes=17):
     metrics = {
         "accuracy": {
             "goal": "maximize",
-            "metric": torchmetrics.Accuracy(threshold=threshold, subset_accuracy=True, multiclass=not multilabel),
+            "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True, multiclass=not multilabel),
         },
         "auroc": {
             "goal": "maximize",
@@ -562,15 +562,16 @@ if __name__ == "__main__":
     # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
     # print(prediction)
     # model_inputs = trainer.prepare_long_text_input(sample)
+    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
+    test = ds_dict["test"]
     tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
     sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
                                                                                 num_labels=17)
     sdg_model.cuda()
     sdg_model.load_state_dict(torch.load("../playful-sunset-10_0603190924.pt"))
 
-    # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
-    # print(prediction)
-    # test.set_format("pt", columns=["input_ids", "label"])
-    # dl = torch.utils.data.DataLoader(test)
-    # res = trainer.test_scopus(dl)
-    # print(res[0][res[1][0]], res[1][0])
+    trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
+    test.set_format("pt", columns=["input_ids", "label"])
+    dl = torch.utils.data.DataLoader(test)
+    res = trainer.test_scopus_mean(dl)
+    print(res)

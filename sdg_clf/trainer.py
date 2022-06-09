@@ -483,7 +483,7 @@ class SDGTrainer(Trainer):
             if metrics["f1"] > best_f1[1]:
                 best_f1 = (threshold, metrics["f1"])
             threshold_results[threshold] = metrics
-        return threshold_results, best_f1
+        return best_f1, threshold_results[best_f1[0]]
 
     def infer_sample(self, text: str, step_size: int = 260, max_length: int = 260, strategy: str = "mean"):
         text = text.lower()
@@ -497,14 +497,14 @@ class SDGTrainer(Trainer):
 
 if __name__ == "__main__":
     # ds_dict = datasets.load_from_disk("../data/processed/scopus/roberta-base")
-    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
+    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="data")
     test = ds_dict["test"]
     # sample = test["Abstract"][0]
-    tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
-    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
+    tokenizer = transformers.AutoTokenizer.from_pretrained("tokenizers/roberta-base")
+    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("pretrained_models/roberta-base",
                                                                                 num_labels=17)
     sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load("../playful-sunset-10_0603190924.pt"))
+    sdg_model.load_state_dict(torch.load("playful-sunset-10_0603190924.pt"))
     # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
     # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
     # print(prediction)
@@ -545,4 +545,4 @@ if __name__ == "__main__":
     # print(prediction)
     test.set_format("pt", columns=["input_ids", "label"])
     dl = torch.utils.data.DataLoader(test)
-    trainer.test_scopus(dl)
+    print(trainer.test_scopus(dl))

@@ -157,21 +157,13 @@ def predictions_above_treshold(predictions_dataframe, treshold=0.95):
 
 
 # RUN
-
-abstracts=DATA
-
-ids=abstracts_to_ids(abstracts)
-
-padded_ids=pad_ids(ids)
-
-masks=create_attention_masks(padded_ids)
-
-masks=convert_to_tensor(masks)
-
-inputs=convert_to_tensor(padded_ids)
-
-predictions=models_predict(directory=MODELS, inputs=inputs, attention_masks=masks)
-
-predictions_df=predictions_dict_to_df(predictions)
-
-predictions_df.to_csv(f"{SAVE_PREDICTIONS_TO}/predictions.csv", index=False)
+if __name__ == "__main__":
+    abstracts=DATA
+    ids=abstracts_to_ids(abstracts)
+    padded_ids=pad_ids(ids)
+    masks=create_attention_masks(padded_ids)
+    masks=convert_to_tensor(masks)
+    inputs=convert_to_tensor(padded_ids)
+    predictions=models_predict(directory=MODELS, inputs=inputs, attention_masks=masks)
+    predictions_df=predictions_dict_to_df(predictions)
+    predictions_df.to_csv(f"{SAVE_PREDICTIONS_TO}/predictions.csv", index=False)

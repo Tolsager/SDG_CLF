@@ -70,7 +70,7 @@ def performance(preds, labels, threshold, trainer):
 
 if __name__ == '__main__':
     eval_set = "scopus"
-    model_type = "roberta-base"
+    model_type = "roberta-large"
 
     print(f"{model_type} evaluated on {eval_set}")
 
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained(f"pretrained_models/{model_type}",
                                                                                 num_labels=17)
     sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load(f"models/{model_type}/playful-sunset-10_0603190924.pt"))
+    sdg_model.load_state_dict(torch.load(f"models/{model_type}/brisk-cosmos-39_0608113410.pt"))
 
     metrics = trainer.get_metrics(0.5)
 

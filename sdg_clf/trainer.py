@@ -536,10 +536,10 @@ def get_metrics(threshold, multilabel=False, num_classes=17):
             "goal": "maximize",
             "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True, multiclass=not multilabel),
         },
-        "auroc": {
-            "goal": "maximize",
-            "metric": torchmetrics.AUROC(num_classes=num_classes),
-        },
+        # "auroc": {
+        #     "goal": "maximize",
+        #     "metric": torchmetrics.AUROC(num_classes=num_classes),
+        # },
         "precision": {
             "goal": "maximize",
             "metric": torchmetrics.Precision(threshold=threshold, num_classes=num_classes,

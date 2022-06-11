@@ -1,20 +1,23 @@
 # Hugging Face transformers packages
 # Why do we get the RobertaForSequenceClassification model, if we don't use it?
+import os
+import torch
+
 from transformers import (
     AutoModelForSequenceClassification,
     RobertaForSequenceClassification,
-    AutoModel,  
+    AutoModel,
 )
 
 # Why are we installing these?!
 import torch.nn as nn
 import transformers
 
+
 class Model(nn.Module):
     def __init__(self, path, n_layers=0, n_labels=17, hidden_size=768):
         super().__init__()
         assert n_layers >= 0
-
 
         self.n_layers = n_layers
         self.hidden_size = hidden_size
@@ -36,10 +39,11 @@ class Model(nn.Module):
 
         self.dropout = nn.Dropout(p=0.1)
 
-        self.block = nn.Sequential(*nn.ModuleList([self.transformer_o] + [self.linear for _ in range(n_layers)])) if n_layers >= 0 else None
+        self.block = nn.Sequential(
+            *nn.ModuleList([self.transformer_o] + [self.linear for _ in range(n_layers)])) if n_layers >= 0 else None
 
         self.head = nn.Linear(self.hidden_size, self.n_labels)
-    
+
     def forward(self, iids, amask):
         transformer_features = self.transformer(input_ids=iids, attention_mask=amask)["last_hidden_state"]
         x = transformer_features[:, 0, :]
@@ -53,10 +57,10 @@ class Model(nn.Module):
 
 
 def get_model(
-    num_labels: int = 17,
-    pretrained_path: str = None,
-    n_layers: int = 1,
-    hidden_size: int = 768,
+        num_labels: int = 17,
+        pretrained_path: str = None,
+        n_layers: int = 1,
+        hidden_size: int = 768,
 ):
     """Function calling the from_pretrained method on Huggingface hosted pretrained models
 
@@ -68,4 +72,16 @@ def get_model(
         _type_: _description_
     """
     model = Model(path=pretrained_path, n_layers=n_layers, n_labels=num_labels, hidden_size=hidden_size)
+    return model
+
+
+def load_model(path_weights: str, model_type: str, path_pretrained_models: str):
+    path_pretrained_model = os.path.join(path_pretrained_models, model_type)
+    if os.path.exists(path_pretrained_model):
+        model = transformers.AutoModelForSequenceClassification.from_pretrained(path_pretrained_model, num_labels=17)
+    else:
+        model = transformers.AutoModelForSequenceClassification.from_pretrained(model_type, num_labels=17)
+        model.save_pretrained(path_pretrained_models)
+    model.cuda()
+    model.load_state_dict(torch.load(path_weights))
     return model

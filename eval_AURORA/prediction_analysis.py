@@ -47,7 +47,7 @@ def preds_above_threshold(data: pd.DataFrame, threshold: float):
     """Filters predictions above specified threshold.
     Returns torch of predictions
     """
-    above_threshold=data.where(data > threshold, other =0)
+    above_threshold=data.where(data > threshold, other=0)
     above_threshold = above_threshold.where(above_threshold == 0, other = 1)
     above_threshold = torch.tensor(above_threshold.values.tolist())
     return above_threshold

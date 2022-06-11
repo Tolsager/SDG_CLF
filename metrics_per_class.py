@@ -10,11 +10,13 @@ from sdg_clf.make_predictions import get_tweet_preds, get_scopus_preds
 def get_threshold(preds, labels, trainer):
     best_f1 = (0, 0)
     for threshold in np.linspace(0, 1, 101):
-        metrics = get_metrics(threshold=threshold, multilabel=True)
+        thresh_preds = [torch.any(pred > threshold, dim=0).reshape(1,-1) for pred in preds]
+        thresh_preds = torch.cat(thresh_preds, dim=0)
+        metrics = get_metrics(threshold=0.5, multilabel=True)
         trainer.metrics = metrics
         trainer.set_metrics_to_device()
         trainer.reset_metrics()
-        trainer.update_metrics({"label": labels.to(trainer.device), "prediction": preds.to(trainer.device)})
+        trainer.update_metrics({"label": labels.to(trainer.device), "prediction": thresh_preds.to(trainer.device)})
         metrics = trainer.compute_metrics()
         if metrics["f1"] > best_f1[1]:
             best_f1 = (threshold, metrics["f1"])
@@ -63,13 +65,14 @@ if __name__ == '__main__':
         dl_train = torch.utils.data.DataLoader(train)
         dl_test = torch.utils.data.DataLoader(test)
 
-        train_preds = get_scopus_preds(sdg_model, model_type, "train", dl_train, eval_trainer)
-        train_preds = torch.stack(train_preds, dim=0)
+        train_preds = get_scopus_preds(sdg_model, model_type, "train", "predictions", "data", "tokenizers")
+        # train_preds = torch.stack(train_preds, dim=0)
 
-        test_preds = get_scopus_preds(sdg_model, model_type, "test", dl_test, eval_trainer)
-        test_preds = torch.stack(test_preds, dim=0)
+        test_preds = get_scopus_preds(sdg_model, model_type, "test", "predictions", "data", "tokenizers")
+        # test_preds = torch.stack(test_preds, dim=0)
 
         threshold = get_threshold(train_preds, train_labels, eval_trainer)[0]
+        test_preds = torch.cat([torch.any(pred > threshold, dim=0).reshape(1,-1) for pred in test_preds], dim=0)
         overall_test_metrics = performance(test_preds, test_labels, threshold, eval_trainer)
 
     else:
@@ -86,11 +89,11 @@ if __name__ == '__main__':
         dl_validation = torch.utils.data.DataLoader(validation)
         dl_test = torch.utils.data.DataLoader(test)
 
-        validation_preds = get_tweet_preds(sdg_model, model_type, "validation", dl_validation)
-        validation_preds = torch.stack(validation_preds, dim=0).reshape(-1, 17)
+        validation_preds = get_tweet_preds(sdg_model, model_type, "validation", "predictions", "data", "tokenizers")
+        # validation_preds = torch.stack(validation_preds, dim=0).reshape(-1, 17)
 
-        test_preds = get_tweet_preds(sdg_model, model_type, "test", dl_test)
-        test_preds = torch.stack(test_preds, dim=0).reshape(-1, 17)
+        test_preds = get_tweet_preds(sdg_model, model_type, "test", "predictions", "data", "tokenizers")
+        # test_preds = torch.stack(test_preds, dim=0).reshape(-1, 17)
 
         threshold = get_threshold(validation_preds, validation_labels, eval_trainer)[0]
         overall_test_metrics = performance(test_preds, test_labels, threshold, eval_trainer)

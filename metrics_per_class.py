@@ -1,47 +1,11 @@
 from sdg_clf import trainer, dataset_utils
 import torch
-import pickle
 import transformers
-import os
-from tqdm import tqdm
 import numpy as np
 from sdg_clf.trainer import get_metrics
 
+from sdg_clf.make_predictions import get_tweet_preds, get_scopus_preds
 
-def get_tweet_preds(model, model_type, split, dataloader):
-    if not os.path.exists(f"predictions/{model_type}/tweet_{split}.pkl"):
-        os.makedirs(f"predictions/{model_type}", exist_ok=True)
-        model.eval()
-        preds = []
-        for sample in tqdm(dataloader):
-            with torch.no_grad():
-                pred = model(sample["input_ids"].to("cuda:0"), sample["attention_mask"].to("cuda:0")).logits.sigmoid()
-                preds.append(pred)
-        with open(f"predictions/{model_type}/tweet_{split}.pkl", "wb") as f:
-            pickle.dump(preds, f)
-    with open(f"predictions/{model_type}/tweet_{split}.pkl", "rb") as f:
-        tweet_preds = pickle.load(f)
-    return tweet_preds
-
-def get_scopus_preds(model, model_type, split, dataloader, trainer):
-    if not os.path.exists(f"predictions/{model_type}/scopus_{split}.pkl"):
-        os.makedirs(f"predictions/{model_type}", exist_ok=True)
-        max_length, step_size = 260, 260
-        model.eval()
-        preds = []
-        for sample in tqdm(dataloader):
-            with torch.no_grad():
-                iids = sample["input_ids"]
-                model_in = trainer.prepare_long_text_input(iids, max_length=max_length, step_size=step_size)
-                model_out = model(**model_in).logits.sigmoid()
-                pred = trainer.long_text_step(model_out)
-                preds.append(pred)
-        with open(f"predictions/{model_type}/scopus_{split}.pkl", "wb") as f:
-            pickle.dump(preds, f)
-    with open(f"predictions/{model_type}/scopus_{split}.pkl", "rb") as f:
-        scopus_preds = pickle.load(f)
-    
-    return scopus_preds
 
 def get_threshold(preds, labels, trainer):
     best_f1 = (0, 0)

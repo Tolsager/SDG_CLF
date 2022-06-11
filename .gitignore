@@ -11,6 +11,7 @@ playground.py
 .idea
 eval_osdg/osdg_ip.py
 eval_AURORA/BERT_models/
+predictions
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

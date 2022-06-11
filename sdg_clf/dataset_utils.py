@@ -4,6 +4,9 @@ import transformers
 import os
 import re
 import numpy as np
+import torch
+
+from .utils import get_tokenizer
 
 
 def remove_with_regex(sample: dict, pattern: re.Pattern = None, textname: str = "text"):
@@ -218,11 +221,11 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
         if tweet:
             ds_dict[split] = ds_dict[split].map(
                 lambda samples: tokenizer(samples[textname], padding="max_length", max_length=max_length,
-                                          truncation=True), batched=True, num_proc=1)
+                                          truncation=True, return_token_type_ids=False), batched=True, num_proc=1)
         else:
             ds_dict[split] = ds_dict[split].map(
                 lambda samples: tokenizer(samples[textname], add_special_tokens=False, truncation=False,
-                                          return_attention_mask=False), num_proc=1)
+                                          return_attention_mask=False, return_token_type_ids=False), num_proc=1)
         ds_dict[split] = ds_dict[split].remove_columns([textname, "nclasses", "label"])
 
     return ds_dict
@@ -268,14 +271,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
         create_base_dataset(tweet=tweet, path_data=path_data)
     ds_dict_base = datasets.load_from_disk(path_base)
 
-    path_tokenizer = os.path.join(path_tokenizers, tokenizer_type)
-    if not os.path.exists(path_tokenizer):
-        tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
-        os.makedirs(path_tokenizer)
-        tokenizer.save_pretrained(path_tokenizer)
-    else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(path_tokenizer)
-
+    tokenizer = get_tokenizer(tokenizer_type, path_tokenizers)
     ds_dict_tokens = tokenize_dataset(tokenizer, tweet=tweet, max_length=max_length, path_data=path_data)
     path_save = path_data1 + f"/{tokenizer_type}"
     ds_dict_tokens.save_to_disk(path_save)
@@ -311,6 +307,15 @@ def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data: str ="data"
 
     return ds_dict_tokens
 
+def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool = True, path_data: str = "data", path_tokenizers: str = "tokenizers"):
+    ds_dict = get_dataset(tokenizer_type, tweet=tweet, path_data=path_data, path_tokenizers=path_tokenizers)
+    ds = ds_dict[split]
+    if tweet:
+        ds.set_format("pt", ["input_ids", "attention_mask"])
+    else:
+        ds.set_format("pt", ["input_ids"])
+    dl = torch.utils.data.DataLoader(ds, batch_size=batch_size)
+    return dl
 
 if __name__ == "__main__":
     ds_dict_tweets = get_dataset("roberta-base", path_data="../data")

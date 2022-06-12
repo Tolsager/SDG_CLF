@@ -5,14 +5,17 @@ import torch
 from tqdm import tqdm
 from .dataset_utils import get_dataloader, get_tokenizer
 from .utils import prepare_long_text_input
+from .model import load_model
 
 
-def get_tweet_preds(model, model_type, split, path_predictions, path_data: str, path_tokenizers: str,
+def get_tweet_preds(model_type, split, weights=None,
                     batch_size: int = 20):
-    dataloader = get_dataloader(split, model_type, tweet=True, path_data=path_data, path_tokenizers=path_tokenizers,
-                                batch_size=batch_size)
+    path_predictions = "predictions"
     if not os.path.exists(f"{path_predictions}/{model_type}/tweet_{split}.pkl"):
+        dataloader = get_dataloader(split, model_type, tweet=True,
+                                    batch_size=batch_size)
         os.makedirs(f"{path_predictions}/{model_type}", exist_ok=True)
+        model = load_model(weights, model_type)
         model.eval()
         preds = []
         for sample in tqdm(dataloader):
@@ -27,12 +30,14 @@ def get_tweet_preds(model, model_type, split, path_predictions, path_data: str, 
     return tweet_preds
 
 
-def get_scopus_preds(model, model_type, split, path_predictions, path_data: str, path_tokenizers: str):
-    dataloader = get_dataloader(split, model_type, tweet=False, path_data=path_data, path_tokenizers=path_tokenizers, batch_size=1)
-    tokenizer = get_tokenizer(model_type, path_tokenizers=path_tokenizers)
-    if not os.path.exists(f"{path_predictions}/{model_type}/scopus_{split}.pkl"):
+def get_scopus_preds(model_type, split, weights=None):
+    path_predictions = "predictions"
+    if not os.path.exists(f"predictions/{model_type}/scopus_{split}.pkl"):
+        dataloader = get_dataloader(split, model_type, tweet=False, batch_size=1)
+        tokenizer = get_tokenizer(model_type)
         os.makedirs(f"{path_predictions}/{model_type}", exist_ok=True)
         max_length, step_size = 260, 260
+        model = load_model(weights, model_type)
         model.eval()
         preds = []
         for sample in tqdm(dataloader):

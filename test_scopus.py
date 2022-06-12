@@ -8,7 +8,7 @@ from sdg_clf.trainer import SDGTrainer
 
 
 def eval_scopus(model_type: str, path_model: str, split: str, strategy: str = "any"):
-    ds_dict = get_dataset(model_type, tweet=False, path_data="data", path_tokenizers="tokenizers")
+    ds_dict = get_dataset(model_type, tweet=False)
     ds = ds_dict[split]
     tokenizer = transformers.AutoTokenizer.from_pretrained(os.path.join("tokenizers", model_type))
     sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained(

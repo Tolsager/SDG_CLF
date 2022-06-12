@@ -35,7 +35,8 @@ def reset_weights(m):
             layer.reset_parameters()
 
 
-def get_tokenizer(tokenizer_type: str, path_tokenizers: str):
+def get_tokenizer(tokenizer_type: str):
+    path_tokenizers = "tokenizers"
     path_tokenizer = os.path.join(path_tokenizers, tokenizer_type)
     if not os.path.exists(path_tokenizer):
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_type)
@@ -43,7 +44,6 @@ def get_tokenizer(tokenizer_type: str, path_tokenizers: str):
     else:
         tokenizer = transformers.AutoTokenizer.from_pretrained(path_tokenizer)
     return tokenizer
-
 
 
 def prepare_long_text_input(input_ids: Union[list[int], torch.Tensor], tokenizer: transformers.PreTrainedTokenizer,
@@ -75,3 +75,42 @@ def prepare_long_text_input(input_ids: Union[list[int], torch.Tensor], tokenizer
     input_ids = torch.tensor(input_ids, device=device)
     attention_mask = torch.tensor(attention_masks, device=device)
     return {"input_ids": input_ids, "attention_mask": attention_mask}
+
+
+def update_metrics(metrics, step_outputs: dict):
+    """
+    Updates the metrics of the self.metrics dictionary based on outputs from the model
+
+    Args:
+        step_outputs (dict): Dictionary of metric outputs from the neural network
+    """
+    for metric in metrics.values():
+        metric["metric"].update(
+            target=step_outputs["label"], preds=step_outputs["prediction"]
+        )
+
+
+def compute_metrics(metrics):
+    """
+    Computes the metrics in the self.metric dictionary using the .compute() torchmetrics method
+
+    Returns:
+        Dictionary of metrics computed by torchmetrics
+    """
+    metric_values = {
+        k: v["metric"].compute().cpu() for k, v in metrics.items()
+    }
+    return metric_values
+
+
+def reset_metrics(metrics):
+    """
+    Resets the values of the self.metrics dictionary
+    """
+    for metric in metrics.values():
+        metric["metric"].reset()
+
+
+def set_metrics_to_device(metrics):
+    for k, v in metrics.items():
+        metrics[k]["metric"] = v["metric"].to("cuda")

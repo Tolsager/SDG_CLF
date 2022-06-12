@@ -166,7 +166,7 @@ def split_dataset(
     return dataset_dict
 
 
-def create_base_dataset(tweet: bool = True, nrows: int = None, path_data: str = "data"):
+def create_base_dataset(tweet: bool = True, nrows: int = None):
     """
     Preprocesses the text of the two datasets
 
@@ -179,6 +179,7 @@ def create_base_dataset(tweet: bool = True, nrows: int = None, path_data: str = 
         None
 
     """
+    path_data = "data"
     path = os.path.join(path_data, "raw")
     if tweet:
         path = os.path.join(path, "allSDGtweets.csv")
@@ -195,7 +196,8 @@ def create_base_dataset(tweet: bool = True, nrows: int = None, path_data: str = 
     ds_dict.save_to_disk(path_save)
 
 
-def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = True, max_length: int = 260, path_data: str = "data", ):
+def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = True, max_length: int = 260,
+                     path_data: str = "data", ):
     """
     Tokenizes the dataset
 
@@ -232,7 +234,7 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
 
 
 def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260,
-                overwrite: bool = False, path_data: str = "data", path_tokenizers: str = "tokenizers"):
+                overwrite: bool = False):
     """
     Creates the dataset if it doesn't already exist otherwise it loads it from the correct folder
 
@@ -249,6 +251,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
         processed dataset for training with transformer outputs and labels
     """
     # load tokenized dataset if exists
+    path_data = "data"
     path_data1 = os.path.join(path_data, "processed")
     if tweet:
         path_data1 = os.path.join(path_data1, "tweets")
@@ -268,10 +271,10 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
 
     # else create dataset
     if not os.path.exists(path_base):
-        create_base_dataset(tweet=tweet, path_data=path_data)
+        create_base_dataset(tweet=tweet)
     ds_dict_base = datasets.load_from_disk(path_base)
 
-    tokenizer = get_tokenizer(tokenizer_type, path_tokenizers)
+    tokenizer = get_tokenizer(tokenizer_type)
     ds_dict_tokens = tokenize_dataset(tokenizer, tweet=tweet, max_length=max_length, path_data=path_data)
     path_save = path_data1 + f"/{tokenizer_type}"
     ds_dict_tokens.save_to_disk(path_save)
@@ -283,7 +286,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
     return ds_dict_tokens
 
 
-def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data: str ="data"):
+def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data: str = "data"):
     """
     Load an existing dataset from the files
 
@@ -307,8 +310,9 @@ def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data: str ="data"
 
     return ds_dict_tokens
 
-def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool = True, path_data: str = "data", path_tokenizers: str = "tokenizers"):
-    ds_dict = get_dataset(tokenizer_type, tweet=tweet, path_data=path_data, path_tokenizers=path_tokenizers)
+
+def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool = True):
+    ds_dict = get_dataset(tokenizer_type, tweet=tweet)
     ds = ds_dict[split]
     if tweet:
         ds.set_format("pt", ["input_ids", "attention_mask"])
@@ -317,6 +321,7 @@ def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool
     dl = torch.utils.data.DataLoader(ds, batch_size=batch_size)
     return dl
 
+
 if __name__ == "__main__":
-    ds_dict_tweets = get_dataset("roberta-base", path_data="../data")
-    ds_dict_scopus = get_dataset("roberta-base", path_data="../data", tweet=False)
+    ds_dict_tweets = get_dataset("roberta-base")
+    ds_dict_scopus = get_dataset("roberta-base", tweet=False)

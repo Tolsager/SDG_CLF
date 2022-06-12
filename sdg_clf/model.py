@@ -75,13 +75,13 @@ def get_model(
     return model
 
 
-def load_model(path_weights: str, model_type: str, path_pretrained_models: str):
-    path_pretrained_model = os.path.join(path_pretrained_models, model_type)
+def load_model(weights: str, model_type: str):
+    path_pretrained_model = os.path.join("pretrained_models", model_type)
     if os.path.exists(path_pretrained_model):
         model = transformers.AutoModelForSequenceClassification.from_pretrained(path_pretrained_model, num_labels=17)
     else:
         model = transformers.AutoModelForSequenceClassification.from_pretrained(model_type, num_labels=17)
-        model.save_pretrained(path_pretrained_models)
+        model.save_pretrained("pretrained_models")
     model.cuda()
-    model.load_state_dict(torch.load(path_weights))
+    model.load_state_dict(torch.load(os.path.join("finetuned_models", weights)))
     return model

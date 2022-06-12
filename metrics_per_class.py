@@ -63,10 +63,10 @@ if __name__ == '__main__':
         dl_train = torch.utils.data.DataLoader(train)
         dl_test = torch.utils.data.DataLoader(test)
 
-        train_preds = get_scopus_preds(sdg_model, model_type, "train", dl_train, eval_trainer)
+        train_preds = get_scopus_preds(model_type, "train", dl_train, eval_trainer, sdg_model)
         train_preds = torch.stack(train_preds, dim=0)
 
-        test_preds = get_scopus_preds(sdg_model, model_type, "test", dl_test, eval_trainer)
+        test_preds = get_scopus_preds(model_type, "test", dl_test, eval_trainer, sdg_model)
         test_preds = torch.stack(test_preds, dim=0)
 
         threshold = get_threshold(train_preds, train_labels, eval_trainer)[0]
@@ -86,10 +86,10 @@ if __name__ == '__main__':
         dl_validation = torch.utils.data.DataLoader(validation)
         dl_test = torch.utils.data.DataLoader(test)
 
-        validation_preds = get_tweet_preds(sdg_model, model_type, "validation", dl_validation)
+        validation_preds = get_tweet_preds(model_type, "validation", dl_validation)
         validation_preds = torch.stack(validation_preds, dim=0).reshape(-1, 17)
 
-        test_preds = get_tweet_preds(sdg_model, model_type, "test", dl_test)
+        test_preds = get_tweet_preds(model_type, "test", dl_test)
         test_preds = torch.stack(test_preds, dim=0).reshape(-1, 17)
 
         threshold = get_threshold(validation_preds, validation_labels, eval_trainer)[0]

@@ -123,7 +123,35 @@ def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool 
     print(f"Best threshold: {threshold}")
     print("Metrics for best threshold:")
     print(metrics_values)
+    with open("results_ensemble.txt", "a") as f:
+        f.write(f"""
+Dataset: {"Tweets" if tweet else "Scopus"}
+Model types: {model_types}
+best threshold: {threshold}
+metrics: {metrics_values}\n""")
+
+    # metrics pr. SDG
+    results = []
+    metrics = get_metrics(threshold, multilabel=True, num_classes=False)
+    set_metrics_to_device(metrics)
+    for i in range(17):
+        labels = labels_test[:, i]
+        preds = predictions[:, i]
+        reset_metrics(metrics)
+        update_metrics(metrics, {"label": labels.to("cuda"), "prediction": preds.to("cuda")})
+        metrics_values = compute_metrics(metrics)
+        results.append(metrics_values)
+
+    with open("results_ensemble.txt", "a") as f:
+        for i in range(17):
+            f.write(f"sdg{i+1}: {results[i]}\n")
+
+
+
 
 
 if __name__ == "__main__":
-    test_ensemble(["best_albert.pt", "best_deberta.pt, best_roberta.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], tweet=False)
+    test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"])
+    test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"])
+    test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], tweet=False)
+    test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], tweet=False)

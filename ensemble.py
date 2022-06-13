@@ -13,7 +13,7 @@ from sdg_clf.trainer import get_metrics
 from sdg_clf.utils import set_metrics_to_device, reset_metrics, update_metrics, compute_metrics
 
 
-def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool = True):
+def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool = True, log=False):
     """Load finetuned models and predict with their mean.
     The optimal threshold is found on one set and evaluated on the test set
 
@@ -120,11 +120,12 @@ def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool 
         predictions = torch.stack(predictions, dim=0)
         update_metrics(metrics, {"label": labels_test.to("cuda"), "prediction": predictions.to("cuda")})
         metrics_values = compute_metrics(metrics)
-    print(f"Best threshold: {threshold}")
-    print("Metrics for best threshold:")
-    print(metrics_values)
-    with open("results_ensemble.txt", "a") as f:
-        f.write(f"""
+    # print(f"Best threshold: {threshold}")
+    # print("Metrics for best threshold:")
+    # print(metrics_values)
+    if log:
+        with open("results_ensemble.txt", "a") as f:
+            f.write(f"""
 Dataset: {"Tweets" if tweet else "Scopus"}
 Model types: {model_types}
 best threshold: {threshold}
@@ -133,6 +134,7 @@ metrics: {metrics_values}\n""")
     # metrics pr. SDG
     results = []
     metrics = get_metrics(threshold, multilabel=True, num_classes=False)
+    del metrics["accuracy"]
     set_metrics_to_device(metrics)
     for i in range(17):
         labels = labels_test[:, i]
@@ -142,16 +144,26 @@ metrics: {metrics_values}\n""")
         metrics_values = compute_metrics(metrics)
         results.append(metrics_values)
 
-    with open("results_ensemble.txt", "a") as f:
-        for i in range(17):
-            f.write(f"sdg{i+1}: {results[i]}\n")
+    if log:
+        with open("results_ensemble.txt", "a") as f:
+            for i in range(17):
+                f.write(f"sdg{i+1}: {results[i]}\n")
 
+    for i in range(17):
+        s = f"SDG{i+1}"
+        for val in results[i].values():
+            s += f" & {round(val.item(),4)}"
+        s += r" \\"
+        print(s)
 
 
 
 
 if __name__ == "__main__":
-    test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"])
-    test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"])
-    test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], tweet=False)
-    test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], tweet=False)
+    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], log=True)
+    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=True)
+    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], tweet=False, log=True)
+    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], tweet=False, log=True)
+    # test_ensemble(["best_albert.pt"], model_types=["albert-large-v2"], log=True, tweet=False)
+    test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=True, tweet=True)
+    test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=True, tweet=False)

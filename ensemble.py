@@ -126,4 +126,4 @@ def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool 
 
 
 if __name__ == "__main__":
-    test_ensemble(["best_albert.pt", "best_deberta.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large"])
+    test_ensemble(["best_albert.pt", "best_deberta.pt, best_roberta.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], tweet=False)

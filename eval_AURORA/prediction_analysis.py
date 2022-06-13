@@ -60,9 +60,9 @@ def classifications_metrics(preds: pd.DataFrame, labels: torch.tensor, threshold
     return performance
 
 if __name__ == "__main__":
-    labels_true = datasets.load_from_disk("../data/processed/scopus/base")['test']['label']
+    labels_true = datasets.load_from_disk("../data/processed/tweets/base")['test']['label'][:3000]
     labels_true = torch.tensor(labels_true)
-    preds_mbert = pd.read_csv('predictions/predictions_test.csv')
+    preds_mbert = pd.read_csv('predictions/predictions_tweets_test.csv')
     preds_mbert = preds_mbert[[str(i) for i in range(1,18)]]
     results = []
     for thres in np.linspace(0.5,1,51):
@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     columns = results[0].keys()
 
-    with open("predictions/metrics_test.csv", 'w', newline='') as csvfile:
+    with open("predictions/metrics_tweets_test.csv", 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=columns)
         writer.writeheader()
         for key in results:

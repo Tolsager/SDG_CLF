@@ -70,7 +70,7 @@ def classifications_metrics(preds: pd.DataFrame, labels: torch.tensor, threshold
 
 if __name__ == "__main__":
     # For scopus:
-    labels_true = datasets.load_from_disk("../data/processed/scopus/base")['test']['label']
+    labels_true = datasets.load_from_disk("../../data/processed/scopus/base")['test']['label']
     preds_mbert = pd.read_csv('predictions/predictions_test.csv')
 
     # For tweets:

@@ -18,7 +18,7 @@ from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
 import datasets
 
 # SET PARAMETERS
-df = datasets.load_from_disk("../data/processed/tweets/base")
+df = datasets.load_from_disk("../../data/processed/tweets/base")
 DATA=df['test']['text'][:3000]
 
 MODELS="./BERT_models/" # MODELS need to be a directory where the models are located. (Multi-lingual BERT, .h5 format a Hierarchical Data Format (HDF) version 5)

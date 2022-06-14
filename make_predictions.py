@@ -3,9 +3,9 @@ import pickle
 
 import torch
 from tqdm import tqdm
-from .dataset_utils import get_dataloader, get_tokenizer
-from .utils import prepare_long_text_input
-from .model import load_model
+from sdg_clf.dataset_utils import get_dataloader, get_tokenizer
+from sdg_clf.utils import prepare_long_text_input
+from sdg_clf.model import load_model
 
 
 def get_tweet_preds(model_type, split, weights=None,

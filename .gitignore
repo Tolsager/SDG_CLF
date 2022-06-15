@@ -6,11 +6,11 @@ pretrained_models/
 .vscode
 wandb
 data
-EDA_graphs
+EDA/*.png
 playground.py
 .idea
-eval_osdg/osdg_ip.py
-eval_AURORA/BERT_models/
+Comparison_algorithms/eval_osdg/osdg_ip.py
+Comparison_algorithms/eval_AURORA_mbert/BERT_models/
 predictions
 
 # Byte-compiled / optimized / DLL files

@@ -15,7 +15,7 @@ def get_scopus_predictions(api: str, split: str = "train", test: bool = False):
         choice = input("File 'osdg_predictions' already exists. \n Type '1' to change save path\n Type '2' to overwrite\n")
         if choice == "1":
             path_save = input("Type a new file name: ")
-    ds_dict = datasets.load_from_disk("../data/processed/scopus/base")
+    ds_dict = datasets.load_from_disk("../../data/processed/scopus/base")
     ds = ds_dict[split]
     predictions = []
     if api == "first":
@@ -44,7 +44,7 @@ def get_tweet_predictions(api: str, split: str = "validation", test: bool = Fals
         choice = input("File 'osdg_predictions_tweets' already exists. \n Type '1' to change save path\n Type '2' to overwrite\n")
         if choice == "1":
             path_save = input("Type a new file name: ")
-    ds_dict = datasets.load_from_disk("../data/processed/tweets/base")
+    ds_dict = datasets.load_from_disk("../../data/processed/tweets/base")
     ds = ds_dict[split]
     ds = ds.filter(lambda example: len(example['text'].split()) > min_length)
     ds = ds.select([i for i in range(3000)])
@@ -82,13 +82,13 @@ def score_predictions(metrics: dict, path_predictions: str, split: str = 'train'
     for metric in metrics.values():
         metric.reset()
     if tweets:
-        ds_dict = datasets.load_from_disk("../data/processed/tweets/base")
+        ds_dict = datasets.load_from_disk("../../data/processed/tweets/base")
         ds = ds_dict[split]
         ds = ds.filter(lambda example: len(example['text'].split())>min_length)
         ds = ds.select([i for i in range(3000)])
         ds = ds.filter(lambda example, indice: indice not in fails, with_indices=True)
     else:
-        ds_dict = datasets.load_from_disk("../data/processed/scopus/base")
+        ds_dict = datasets.load_from_disk("../../data/processed/scopus/base")
         ds = ds_dict[split]
     if test:
         ds = ds.select([0, 1, 2])
@@ -109,7 +109,7 @@ def debug_osdg():
     with open("osdg_predictions", "rb") as f:
         predictions = pickle.load(f)
 
-    ds_dict = datasets.load_from_disk("../data/processed/scopus/base")
+    ds_dict = datasets.load_from_disk("../../data/processed/scopus/base")
     ds = ds_dict["train"]
     texts = ds["Abstract"]
     labels = ds["label"]
@@ -139,7 +139,8 @@ if __name__ == "__main__":
     }
     #print(failed_predictions) #85 failed predictions in the range 0:3000 for test
     failed_predictions = [3, 61, 103, 175, 177, 232, 233, 255, 288, 312, 345, 355, 407, 472, 522, 564, 565, 659, 680, 764, 779, 792, 817, 829, 839, 880, 927, 941, 967, 998, 1014, 1027, 1061, 1074, 1103, 1193, 1201, 1219, 1246, 1253, 1254, 1266, 1308, 1397, 1402, 1463, 1468, 1536, 1556, 1625, 1628, 1681, 1700, 1741, 1744, 1761, 1868, 1915, 1967, 2078, 2094, 2113, 2218, 2323, 2387, 2445, 2517, 2586, 2607, 2615, 2637, 2667, 2692, 2712, 2718, 2742, 2751, 2776, 2798, 2828, 2858, 2885, 2908, 2926, 2958]
-    results = score_predictions(metrics, "osdg_predictions_tweets_test", split = "test", tweets = True, fails = failed_predictions)
+    results = score_predictions(metrics, "osdg_predictions", split ="test", tweets = False)
+    # results = score_predictions(metrics, "osdg_predictions_tweets_test", split = "test", tweets = True, fails = failed_predications)
     print(results)
 
     # output:

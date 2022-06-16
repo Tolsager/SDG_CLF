@@ -6,7 +6,7 @@ from make_predictions import get_scopus_preds, get_tweet_preds
 from ensemble import test_ensemble
 
 
-def mcnemar_test(model1, model2, tweet: bool = False):
+def mcnemar_test(model1, model2, tweet: bool = False, regular: bool = True):
     thresholds = {"roberta-base": 0.62 if tweet else 0.52,
                   "roberta-large": 0.81 if tweet else 0.18,
                   "microsoft/deberta-v3-large": 0.74 if tweet else 0.36,
@@ -26,8 +26,9 @@ def mcnemar_test(model1, model2, tweet: bool = False):
             model2_pred = test_ensemble(model2["weights"], model2["types"], tweet=False, log=False, return_f1=False, return_ensemble_preds=True)
         else:    
             model2_pred = get_scopus_preds(model2, "test")
-            
+
     labels = torch.tensor(labels)
+    
     model1_pred = any_threshold(model1_pred, thresholds[model1]) if isinstance(model1, str) else model1_pred
     model2_pred = any_threshold(model2_pred, thresholds[model2]) if isinstance(model2, str) else model2_pred
 
@@ -36,7 +37,12 @@ def mcnemar_test(model1, model2, tweet: bool = False):
     model1_correct = 0
     model2_correct = 0
     n = len(labels)
-    
+
+    if not regular:
+        model1_pred = model1_pred.flatten()
+        model2_pred = model2_pred.flatten()
+        labels = labels.flatten()
+
     for pred1, pred2, label in zip(model1_pred, model2_pred, labels):
         pred1 = pred1.cuda()
         pred2 = pred2.cuda()
@@ -81,20 +87,22 @@ def any_threshold(preds, threshold):
 if __name__ == '__main__':
     # McNemar tests between
     # Roberta base and Roberta large
+    regular = True
+    tweet = False
     m = 5
     alpha = 0.05
     bonferonni_correct_alpha = alpha / m
-    print((rb_rl:=mcnemar_test("roberta-base", "roberta-large", tweet=False)))
+    print((rb_rl:=mcnemar_test("roberta-base", "roberta-large", tweet=tweet, regular=regular)))
     print(f"Models are dfifferent: {rb_rl[0] < bonferonni_correct_alpha}")
     # Roberta large and ensemble
-    print((rl_e:=mcnemar_test("roberta-large", {"weights": ["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], "types": ["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"]}, tweet=False)))
-    print(f"Models are different: {rl_e[0] < bonferonni_correct_alpha}")
-    # Albert and Deberta
-    print((a_d:=mcnemar_test("albert-large-v2", "microsoft/deberta-v3-large", tweet=False)))
-    print(f"Models are different: {a_d[0] < bonferonni_correct_alpha}")
-    # Albert and Ensemble (worst vs best)
-    print((a_e:=mcnemar_test("albert-large-v2", {"weights": ["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], "types": ["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"]}, tweet=False)))
-    print(f"Models are different: {a_e[0] < bonferonni_correct_alpha}")
-    # Roberta base and ensemble
-    print((rb_e:=mcnemar_test("roberta-base", {"weights": ["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], "types": ["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"]}, tweet=False)))
-    print(f"Models are different: {rb_e[0] < bonferonni_correct_alpha}")
+    # print((rl_e:=mcnemar_test("roberta-large", {"weights": ["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], "types": ["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"]}, tweet=tweet, regular=regular)))
+    # print(f"Models are different: {rl_e[0] < bonferonni_correct_alpha}")
+    # # Albert and Deberta
+    # print((a_d:=mcnemar_test("albert-large-v2", "microsoft/deberta-v3-large", tweet=tweet, regular=regular)))
+    # print(f"Models are different: {a_d[0] < bonferonni_correct_alpha}")
+    # # Albert and Ensemble (worst vs best)
+    # print((a_e:=mcnemar_test("albert-large-v2", {"weights": ["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], "types": ["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"]}, tweet=tweet, regular=regular)))
+    # print(f"Models are different: {a_e[0] < bonferonni_correct_alpha}")
+    # # Roberta base and ensemble
+    # print((rb_e:=mcnemar_test("roberta-base", {"weights": ["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], "types": ["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"]}, tweet=tweet, regular=regular)))
+    # print(f"Models are different: {rb_e[0] < bonferonni_correct_alpha}")

@@ -61,7 +61,7 @@ def preprocess_sample(
     sdg_prog5 = re.compile(r"elsevier\s+Ltd")
     sample = remove_with_regex(sample, pattern=sdg_prog5, textname=textname)
 
-    # remove ekstra whitespace
+    # remove extra whitespace
     sample[textname] = " ".join(sample[textname].split())
 
     # create a label vector (only applicable for tweets)
@@ -109,7 +109,7 @@ def preprocess_dataset(
     if tweet:
         ds = ds.filter(lambda sample: sample["lang"] == "en")
     ds = ds.map(
-        preprocess_sample, num_proc=6, fn_kwargs={"tweet": tweet}
+        preprocess_sample, num_proc=1, fn_kwargs={"tweet": tweet}
     )
 
     # remove redundant columns

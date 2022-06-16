@@ -14,7 +14,7 @@ from sdg_clf.trainer import get_metrics
 from sdg_clf.utils import set_metrics_to_device, reset_metrics, update_metrics, compute_metrics
 
 
-def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool = True, log=False, return_f1: bool = False):
+def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool = True, log=False, return_f1: bool = False, return_ensemble_preds: bool = False):
     """Load finetuned models and predict with their mean.
     The optimal threshold is found on one set and evaluated on the test set
 
@@ -124,6 +124,8 @@ def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool 
         predictions = [k > threshold for k in new_predictions]
         predictions = [torch.any(k, dim=0).int() for k in predictions]
         predictions = torch.stack(predictions, dim=0)
+        if return_ensemble_preds:
+            return predictions
         update_metrics(metrics, {"label": labels_test.to("cuda"), "prediction": predictions.to("cuda")})
         metrics_values = compute_metrics(metrics)
     # print(f"Best threshold: {threshold}")

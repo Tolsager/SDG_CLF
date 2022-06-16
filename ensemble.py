@@ -8,7 +8,7 @@ import torch
 from typing import Union
 from sdg_clf.utils import prepare_long_text_input
 from sdg_clf.model import load_model
-from sdg_clf.make_predictions import get_tweet_preds, get_scopus_preds
+from make_predictions import get_tweet_preds, get_scopus_preds
 from sdg_clf.trainer import get_metrics
 from sdg_clf.utils import set_metrics_to_device, reset_metrics, update_metrics, compute_metrics
 
@@ -28,13 +28,10 @@ def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool 
     if tweet:
         split_val = "validation"
         predictor = get_tweet_preds
-        labels_val = datasets.load_from_disk("data/processed/tweets/base")[split_val]["label"]
     else:
         split_val = "train"
         predictor = get_scopus_preds
-        labels_val = datasets.load_from_disk("data/processed/scopus/base")[split_val]["label"]
     split_test = "test"
-    labels_val = torch.tensor(labels_val)
 
     # predictions for each model
     predictions = []
@@ -42,6 +39,12 @@ def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool 
         prediction = predictor(model_type, split_val, weights=weights)
         predictions.append(prediction)
 
+    if tweet:
+        labels_val = datasets.load_from_disk("data/processed/tweets/base")[split_val]["label"]
+    else:
+        labels_val = datasets.load_from_disk("data/processed/scopus/base")[split_val]["label"]
+    labels_val = torch.tensor(labels_val)
+    
     # get optimal threshold
     if tweet:
         predictions = torch.stack(predictions, dim=-1)
@@ -160,10 +163,18 @@ metrics: {metrics_values}\n""")
 
 
 if __name__ == "__main__":
-    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], log=True)
-    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=True)
-    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], tweet=False, log=True)
-    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], tweet=False, log=True)
+    ## Models + ensemble on Twitter
+    # test_ensemble(["best_roberta-base.pt"], model_types=["roberta-base"], log=True, tweet=True)
+    # test_ensemble(["best_roberta-large.pt"], model_types=["roberta-large"], log=True, tweet=True)
+    # test_ensemble(["best_albert.pt"], model_types=["albert-large-v2"], log=True, tweet=True)
+    # test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=True, tweet=True)
+    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], log=True, tweet=True)
+    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=True, tweet=True)
+
+    ## Models + ensemble on Scopus
+    # test_ensemble(["best_roberta-base.pt"], model_types=["roberta-base"], log=True, tweet=False)
+    # test_ensemble(["best_roberta-large.pt"], model_types=["roberta-large"], log=True, tweet=False)
     # test_ensemble(["best_albert.pt"], model_types=["albert-large-v2"], log=True, tweet=False)
-    test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=True, tweet=True)
-    test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=True, tweet=False)
+    # test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=True, tweet=False)
+    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], log=True, tweet=False)
+    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=True, tweet=False)

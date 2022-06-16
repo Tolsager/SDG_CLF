@@ -6,9 +6,9 @@ from make_predictions import get_scopus_preds, get_tweet_preds
 
 
 def mcnemar_test(model1, model2, tweet: bool = False, alpha: float = 0.05):
-    thresholds = {"roberta-base": 0.62 if tweet else 0.48,
-                  "roberta-large": 0.81 if tweet else 0.19,
-                  "microsoft/deberta-v3-large": 0.74 if tweet else 0.2,
+    thresholds = {"roberta-base": 0.62 if tweet else 0.52,
+                  "roberta-large": 0.81 if tweet else 0.18,
+                  "microsoft/deberta-v3-large": 0.74 if tweet else 0.36,
                   "albert-large-v2": 0.56 if tweet else 0.2}
 
     if tweet:
@@ -71,5 +71,4 @@ def any_threshold(preds, threshold):
 if __name__ == '__main__':
     import pickle
 
-    print(mcnemar_test(model1="roberta-base", model2="roberta-large", tweet=True))
     print(mcnemar_test(model1="roberta-base", model2="roberta-large", tweet=False))

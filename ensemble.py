@@ -29,13 +29,10 @@ def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool 
     if tweet:
         split_val = "validation"
         predictor = get_tweet_preds
-        labels_val = datasets.load_from_disk("data/processed/tweets/base")[split_val]["label"]
     else:
         split_val = "train"
         predictor = get_scopus_preds
-        labels_val = datasets.load_from_disk("data/processed/scopus/base")[split_val]["label"]
     split_test = "test"
-    labels_val = torch.tensor(labels_val)
 
     # predictions for each model
     predictions = []
@@ -43,6 +40,12 @@ def test_ensemble(model_weights: list[str], model_types: list[str], tweet: bool 
         prediction = predictor(model_type, split_val, weights=weights)
         predictions.append(prediction)
 
+    if tweet:
+        labels_val = datasets.load_from_disk("data/processed/tweets/base")[split_val]["label"]
+    else:
+        labels_val = datasets.load_from_disk("data/processed/scopus/base")[split_val]["label"]
+    labels_val = torch.tensor(labels_val)
+    
     # get optimal threshold
     if tweet:
         predictions = torch.stack(predictions, dim=-1)
@@ -233,7 +236,8 @@ def bar_plot(ax, data, colors=None, total_width=0.8, single_width=1, legend=True
     if legend:
         ax.legend(bars, data.keys())
 
-    ax.set_xticks(range(17),[str(i) for i in range(1, 18)])
+    ax.set_xticks(range(17))
+    ax.set_xticklabels(range(1,18))
     ax.set_title("F1-score per SDG on the Twitter test set")
     ax.set_xlabel("SDG")
     ax.set_ylabel("F1")
@@ -241,20 +245,29 @@ def bar_plot(ax, data, colors=None, total_width=0.8, single_width=1, legend=True
 
 
 if __name__ == "__main__":
-    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], log=True)
-    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=True)
-    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], tweet=False, log=True)
-    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], tweet=False, log=True)
-    # test_ensemble(["best_albert.pt"], model_types=["albert-large-v2"], log=True, tweet=False)
+    ## Models + ensemble on Twitter
+    # test_ensemble(["best_roberta-base.pt"], model_types=["roberta-base"], log=True, tweet=True)
+    # test_ensemble(["best_roberta-large.pt"], model_types=["roberta-large"], log=True, tweet=True)
+    # test_ensemble(["best_albert.pt"], model_types=["albert-large-v2"], log=True, tweet=True)
     # test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=True, tweet=True)
+    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], log=True, tweet=True)
+    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=True, tweet=True)
+
+    ## Models + ensemble on Scopus
+    # test_ensemble(["best_roberta-base.pt"], model_types=["roberta-base"], log=True, tweet=False)
+    # test_ensemble(["best_roberta-large.pt"], model_types=["roberta-large"], log=True, tweet=False)
+    # test_ensemble(["best_albert.pt"], model_types=["albert-large-v2"], log=True, tweet=False)
     # test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=True, tweet=False)
+    # test_ensemble(["best_deberta.pt", "best_roberta-large.pt"], model_types=["microsoft/deberta-v3-large", "roberta-large"], log=True, tweet=False)
+    # test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=True, tweet=False)
+
     f1_roberta = test_ensemble(["best_roberta.pt"], model_types=["roberta-large"], log=False, tweet=False, return_f1=True)
-    f1_deberta = test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=False, tweet=True, return_f1=True)
-    f1_albert = test_ensemble(["best_albert.pt"], model_types=["albert-large-v2"], log=False, tweet=True, return_f1=True)
-    f1_ensemble = test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=False, return_f1=True, tweet=True)
+    f1_deberta = test_ensemble(["best_deberta.pt"], model_types=["microsoft/deberta-v3-large"], log=False, tweet=False, return_f1=True)
+    f1_albert = test_ensemble(["best_albert.pt"], model_types=["albert-large-v2"], log=False, tweet=False, return_f1=True)
+    f1_ensemble = test_ensemble(["best_albert.pt", "best_deberta.pt", "best_roberta-large.pt"], model_types=["albert-large-v2", "microsoft/deberta-v3-large", "roberta-large"], log=False, return_f1=True, tweet=False)
 
     # print()
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(16,9))
     bar_plot(ax, data={"RoBERTa-large": f1_roberta, "DeBERTa": f1_deberta, "ALBERT": f1_albert, "Ensemble": f1_ensemble})
-    plt.show()
+    plt.savefig("scopus_barplot.png")
 

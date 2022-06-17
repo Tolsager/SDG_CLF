@@ -1,8 +1,9 @@
+import sdg_clf.utils
 from sdg_clf import trainer, dataset_utils
 import torch
 import transformers
 import numpy as np
-from sdg_clf.trainer import get_metrics
+from sdg_clf.utils import get_metrics
 
 from sdg_clf.make_predictions import get_tweet_preds, get_scopus_preds
 
@@ -46,7 +47,7 @@ if __name__ == '__main__':
     sdg_model.cuda()
     sdg_model.load_state_dict(torch.load(f"models/{model_type}/brisk-cosmos-39_0608113410.pt"))
 
-    metrics = trainer.get_metrics(0.5)
+    metrics = sdg_clf.utils.get_metrics(0.5)
 
     eval_trainer = trainer.SDGTrainer(metrics=metrics, model=sdg_model, tokenizer=tokenizer)
     eval_trainer.set_metrics_to_device()

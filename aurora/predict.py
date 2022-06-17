@@ -18,7 +18,7 @@ from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
 import datasets
 
 # SET PARAMETERS
-df = datasets.load_from_disk("../../data/processed/scopus/base")
+df = datasets.load_from_disk("../data/processed/scopus/base")
 DATA=df['test']['Abstract']
 
 MODELS="./BERT_models/" # MODELS need to be a directory where the models are located. (Multi-lingual BERT, .h5 format a Hierarchical Data Format (HDF) version 5)
@@ -142,7 +142,7 @@ def predictions_dict_to_df(predictions_dictionary):
     return predictions_df
   
 
-def predictions_above_treshold(predictions_dataframe, treshold=0.95):
+def predictions_above_threshold(predictions_dataframe, treshold=0.95):
     """Filters predictions above specified treshold.
     Input is expected to be a dataframe of format:
     | text N | the probability of the text N dealing with the target N | ... |
@@ -154,6 +154,19 @@ def predictions_above_treshold(predictions_dataframe, treshold=0.95):
     for _ in range(len(above_treshold)):
         above_treshold_dict[_]=list(above_treshold[_])
     return above_treshold_dict
+
+def create_aurora_predictions(texts: list[str]):
+    abstracts=texts
+    ids=abstracts_to_ids(abstracts)
+    padded_ids=pad_ids(ids)
+    masks=create_attention_masks(padded_ids)
+    masks=convert_to_tensor(masks)
+    inputs=convert_to_tensor(padded_ids)
+    predictions=models_predict(directory="pretrained_models/mbert", inputs=inputs, attention_masks=masks)
+    predictions_df=predictions_dict_to_df(predictions)
+    predictions_list =
+    predictions_df.to_csv(f"{SAVE_PREDICTIONS_TO}/predictions_test_fixed.csv", index=False)
+
 
 
 # RUN

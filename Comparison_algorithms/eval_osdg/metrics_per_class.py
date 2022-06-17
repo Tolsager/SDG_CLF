@@ -2,6 +2,7 @@ from Comparison_algorithms.eval_AURORA_mbert.prediction_analysis import get_metr
 import torch
 import pickle
 import datasets
+from eval_osdg import convert_predictions
 
 def classifications_metrics(preds: torch.tensor, labels: torch.tensor, per_class: bool = False):
     if per_class:
@@ -16,9 +17,11 @@ def classifications_metrics(preds: torch.tensor, labels: torch.tensor, per_class
 
 if __name__ == "__main__":
     #For scopus:
-    with open('osdg_predictions', 'rb') as f:
+    with open('osdg_predictions_scopus_test.pkl', 'rb') as f:
         preds = pickle.load(f)
+    preds = convert_predictions(preds)
     labels_true = datasets.load_from_disk("../../data/processed/scopus/base")['test']['label']
+    # with open("osdg_predictions_")
 
     # For tweets:
     #failed_preds = [3, 61, 103, 175, 177, 232, 233, 255, 288, 312, 345, 355, 407, 472, 522, 564, 565, 659, 680, 764,

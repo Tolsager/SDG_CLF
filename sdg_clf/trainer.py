@@ -174,10 +174,10 @@ class Trainer:
                     new_best = True
 
                 if new_best:
-                    os.makedirs(f"models/{self.model}", exist_ok=True)
+                    os.makedirs(f"finetuned_models", exist_ok=True)
                     torch.save(
                         self.model.state_dict(),
-                        f"models/{self.model}/{self.save_filename}_{self.time}.pt",
+                        f"finetuned_models/{self.save_filename}_{self.time}.pt",
                     )
 
             for k, v in epoch_metrics_val.items():

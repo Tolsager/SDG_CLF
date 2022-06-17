@@ -109,7 +109,7 @@ def preprocess_dataset(
     if tweet:
         ds = ds.filter(lambda sample: sample["lang"] == "en")
     ds = ds.map(
-        preprocess_sample, num_proc=6, fn_kwargs={"tweet": tweet}
+        preprocess_sample, num_proc=1, fn_kwargs={"tweet": tweet}
     )
 
     # remove redundant columns

@@ -68,7 +68,9 @@ def get_tweet_predictions(api: str, split: str = "validation", test: bool = Fals
         ds = ds.select([0, 1, 2])
     failed_predictions = []
     idx = 0
-    for sample in tqdm(ds):
+    # for sample in tqdm(ds):
+    while len(predictions) <= 1500:
+        sample = ds[idx]
         text = sample["text"]
         data = {"query": text}
         prediction = requests.post(ip, data=data)
@@ -86,6 +88,8 @@ def get_tweet_predictions(api: str, split: str = "validation", test: bool = Fals
         #predictions.append(prediction)
     with open(path_save, "wb+") as f:
         pickle.dump(predictions, f)
+    with open("predictions_failed_tweets.pkl" "wb") as f:
+        pickle.dump(failed_predictions, f)
     return failed_predictions
 
 
@@ -137,19 +141,20 @@ if __name__ == "__main__":
     #get_scopus_predictions(api="first", )
     #failed_predictions = get_tweet_predictions(api="first", split="test", path_save="osdg_predictions_tweets_test")
     #assert False
-    multilabel = True
-    metrics = {
-        "accuracy":
-            torchmetrics.Accuracy(subset_accuracy=True, multiclass=not multilabel),
-        "precision":
-            torchmetrics.Precision(num_classes=17, multiclass=not multilabel),
-        "recall":
-            torchmetrics.Recall(num_classes=17, multiclass=not multilabel),
-        "f1":
-            torchmetrics.F1Score(num_classes=17, multiclass=not multilabel),
-    }
-    results = score_predictions(metrics=metrics, path_predictions="osdg_predictions_scopus_test.pkl", split="test")
-    print(results)
+    # multilabel = True
+    # metrics = {
+    #     "accuracy":
+    #         torchmetrics.Accuracy(subset_accuracy=True, multiclass=not multilabel),
+    #     "precision":
+    #         torchmetrics.Precision(num_classes=17, multiclass=not multilabel),
+    #     "recall":
+    #         torchmetrics.Recall(num_classes=17, multiclass=not multilabel),
+    #     "f1":
+    #         torchmetrics.F1Score(num_classes=17, multiclass=not multilabel),
+    # }
+    # results = score_predictions(metrics=metrics, path_predictions="osdg_predictions_scopus_test.pkl", split="test")
+    get_tweet_predictions(api="first", split="test", path_save="osdg_predictions_tweets_test.pkl")
+    # print(results)
     # #print(failed_predictions) #85 failed predictions in the range 0:3000 for test
     # failed_predictions = [3, 61, 103, 175, 177, 232, 233, 255, 288, 312, 345, 355, 407, 472, 522, 564, 565, 659, 680, 764, 779, 792, 817, 829, 839, 880, 927, 941, 967, 998, 1014, 1027, 1061, 1074, 1103, 1193, 1201, 1219, 1246, 1253, 1254, 1266, 1308, 1397, 1402, 1463, 1468, 1536, 1556, 1625, 1628, 1681, 1700, 1741, 1744, 1761, 1868, 1915, 1967, 2078, 2094, 2113, 2218, 2323, 2387, 2445, 2517, 2586, 2607, 2615, 2637, 2667, 2692, 2712, 2718, 2742, 2751, 2776, 2798, 2828, 2858, 2885, 2908, 2926, 2958]
     # results = score_predictions(metrics, "osdg_predictions", split ="test", tweets = False)

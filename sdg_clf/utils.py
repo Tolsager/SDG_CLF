@@ -1,4 +1,6 @@
 import random
+
+import torchmetrics
 import transformers
 import numpy as np
 import torch
@@ -23,16 +25,6 @@ def seed_everything(seed_value: int):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = True
 
-
-def reset_weights(m):
-    # https://github.com/christianversloot/machine-learning-articles/blob/main/how-to-use-k-fold-cross-validation-with-pytorch.md
-    """
-    Try resetting model weights to avoid
-    weight leakage.
-    """
-    for layer in m.children():
-        if hasattr(layer, "reset_parameters"):
-            layer.reset_parameters()
 
 
 def get_tokenizer(tokenizer_type: str):
@@ -114,3 +106,26 @@ def reset_metrics(metrics):
 def set_metrics_to_device(metrics):
     for k, v in metrics.items():
         metrics[k]["metric"] = v["metric"].to("cuda")
+
+
+def get_metrics(threshold, multilabel=False, num_classes=17):
+    metrics = {
+        "accuracy": {
+            "goal": "maximize",
+            "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True, multiclass=not multilabel),
+        },
+        "precision": {
+            "goal": "maximize",
+            "metric": torchmetrics.Precision(threshold=threshold, num_classes=num_classes,
+                                             multiclass=not multilabel),
+        },
+        "recall": {
+            "goal": "maximize",
+            "metric": torchmetrics.Recall(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
+        },
+        "f1": {
+            "goal": "maximize",
+            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
+        },
+    }
+    return metrics

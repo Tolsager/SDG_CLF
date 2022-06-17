@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import os
 from typing import Union
+import pickle
 
 
 def seed_everything(seed_value: int):
@@ -129,3 +130,12 @@ def get_metrics(threshold, multilabel=False, num_classes=17):
         },
     }
     return metrics
+
+def load_pickle(path: str):
+    with open(path, "rb") as f:
+        contents = pickle.load(f)
+    return contents
+
+def save_pickle(path: str, obj: object):
+    with open(path, "wb") as f:
+        pickle.dump(obj, f)

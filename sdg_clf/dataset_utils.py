@@ -190,7 +190,7 @@ def create_base_dataset(tweet: bool = True, nrows: int = None):
     ds_dict = split_dataset(ds, tweet=tweet)
     path_save = os.path.join(path_data, "processed")
     if tweet:
-        path_save = os.path.join(path_save, "tweets/base")
+        path_save = os.path.join(path_save, "twitter/base")
     else:
         path_save = os.path.join(path_save, "scopus/base")
     ds_dict.save_to_disk(path_save)
@@ -213,7 +213,7 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
     """
     path_data = "data/processed"
     if tweet:
-        ds_dict = datasets.load_from_disk(os.path.join(path_data, "tweets/base"))
+        ds_dict = datasets.load_from_disk(os.path.join(path_data, "twitter/base"))
         textname = "text"
     else:
         ds_dict = datasets.load_from_disk(os.path.join(path_data, "scopus/base"))
@@ -253,7 +253,7 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
     # load tokenized dataset if exists
     path_data = "data/processed"
     if tweet:
-        path_data = os.path.join(path_data, "tweets")
+        path_data = os.path.join(path_data, "twitter")
     else:
         path_data = os.path.join(path_data, "scopus")
     path_base = os.path.join(path_data, "base")
@@ -297,7 +297,7 @@ def load_ds_dict(tokenizer_type: str, tweet: bool = True):
             dict of datasets.Dataset: Dictionary of the splitted dataset
         """
     path_data = "data"
-    path_ds = os.path.join(path_data, "processed", "tweets" if tweet else "scopus")
+    path_ds = os.path.join(path_data, "processed", "twitter" if tweet else "scopus")
     path_ds_dict_tokens = os.path.join(path_ds, tokenizer_type)
     ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
 
@@ -310,9 +310,9 @@ def load_ds_dict(tokenizer_type: str, tweet: bool = True):
     return ds_dict_tokens
 
 
-def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool = True):
+def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool = True, n_samples: int = None):
     ds_dict = get_dataset(tokenizer_type, tweet=tweet)
-    ds = ds_dict[split]
+    ds = ds_dict[split][:n_samples]
     if tweet:
         ds.set_format("pt", ["input_ids", "attention_mask"])
     else:

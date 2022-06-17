@@ -1,11 +1,10 @@
 import requests
-from osdg_ip import ip1, ip2
+from sdg_clf.osdg_ip import ip1, ip2
 import datasets
 from tqdm import tqdm
 import torch
 import ast
 import pickle
-import torchmetrics
 import os
 
 
@@ -15,7 +14,7 @@ def get_scopus_predictions(api: str, split: str = "train", test: bool = False):
         choice = input("File 'osdg_predictions' already exists. \n Type '1' to change save path\n Type '2' to overwrite\n")
         if choice == "1":
             path_save = input("Type a new file name: ")
-    ds_dict = datasets.load_from_disk("../../data/processed/scopus/base")
+    ds_dict = datasets.load_from_disk("../data/processed/scopus/base")
     ds = ds_dict[split]
     predictions = []
     if api == "first":
@@ -55,7 +54,7 @@ def get_tweet_predictions(api: str, split: str = "validation", test: bool = Fals
         choice = input("File 'osdg_predictions_tweets' already exists. \n Type '1' to change save path\n Type '2' to overwrite\n")
         if choice == "1":
             path_save = input("Type a new file name: ")
-    ds_dict = datasets.load_from_disk("../../data/processed/tweets/base")
+    ds_dict = datasets.load_from_disk("../data/processed/tweets/base")
     ds = ds_dict[split]
     ds = ds.filter(lambda example: len(example['text'].split()) > min_length)
     ds = ds.select([i for i in range(3000)])
@@ -97,13 +96,13 @@ def score_predictions(metrics: dict, path_predictions: str, split: str = 'train'
     for metric in metrics.values():
         metric.reset()
     if tweet:
-        ds_dict = datasets.load_from_disk("../../data/processed/tweets/base")
+        ds_dict = datasets.load_from_disk("../data/processed/tweets/base")
         ds = ds_dict[split]
         ds = ds.filter(lambda example: len(example['text'].split())>min_length)
         ds = ds.select([i for i in range(3000)])
         ds = ds.filter(lambda example, indice: indice not in fails, with_indices=True)
     else:
-        ds_dict = datasets.load_from_disk("../../data/processed/scopus/base")
+        ds_dict = datasets.load_from_disk("../data/processed/scopus/base")
         ds = ds_dict[split]
     if test:
         ds = ds.select([0, 1, 2])
@@ -126,7 +125,7 @@ def debug_osdg():
     with open("osdg_predictions", "rb") as f:
         predictions = pickle.load(f)
 
-    ds_dict = datasets.load_from_disk("../../data/processed/scopus/base")
+    ds_dict = datasets.load_from_disk("../data/processed/scopus/base")
     ds = ds_dict["train"]
     texts = ds["Abstract"]
     labels = ds["label"]

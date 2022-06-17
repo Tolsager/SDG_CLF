@@ -1,4 +1,4 @@
-from Comparison_algorithms.eval_AURORA_mbert.prediction_analysis import get_metrics, compute_metrics
+from aurora.prediction_analysis import get_metrics, compute_metrics
 import torch
 import pickle
 import datasets
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     with open('osdg_predictions_scopus_test.pkl', 'rb') as f:
         preds = pickle.load(f)
     preds = convert_predictions(preds)
-    labels_true = datasets.load_from_disk("../../data/processed/scopus/base")['test']['label']
+    labels_true = datasets.load_from_disk("../data/processed/scopus/base")['test']['label']
     # with open("osdg_predictions_")
 
     # For tweets:

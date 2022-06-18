@@ -75,7 +75,7 @@ def preprocess_sample(
 
 
 def preprocess_dataset(
-        file: str = "data/raw/allSDGtweets.csv",
+        file: str = "data/raw/twitter.csv",
         nrows: int = None,
         multi_label: bool = True,
         tweet: bool = True,
@@ -84,7 +84,7 @@ def preprocess_dataset(
     Loads the tweet CSV into a huggingface dataset and apply the preprocessing
 
     Args:
-        file (str, optional): path to csv file. Defaults to "data/raw/allSDGtweets.csv".
+        file (str, optional): path to csv file. Defaults to "data/raw/twitter.csv".
         nrows (int, optional): only used for debugging the preprocessing. Defaults to None
         multi_label (bool, optional): if true only load samples with nclasses==1. Defaults to True
         tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
@@ -182,9 +182,9 @@ def create_base_dataset(tweet: bool = True, nrows: int = None):
     path_data = "data"
     path = os.path.join(path_data, "raw")
     if tweet:
-        path = os.path.join(path, "allSDGtweets.csv")
+        path = os.path.join(path, "twitter.csv")
     else:
-        path = os.path.join(path, "scopus_ready_to_use.csv")
+        path = os.path.join(path, "scopus.csv")
 
     ds = preprocess_dataset(file=path, nrows=nrows, tweet=tweet)
     ds_dict = split_dataset(ds, tweet=tweet)

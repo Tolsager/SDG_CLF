@@ -154,15 +154,6 @@ if __name__ == "__main__":
     parser.add_argument("-nt", "--notes", help="notes for a specific experiment run", type=str, default="run with base parameters")
     parser.add_argument("-mt", "--model_type", help="specify model type to train", type=str, default="roberta-base")
     args = parser.parse_args()
-    # main(
-    #     batch_size=16,
-    #     epochs=3,
-    #     multi_label=True,
-    #     call_tqdm=True,
-    #     nrows=100,
-    #     folds=3,
-    #     metrics=metrics,
-    # )
     main(
         multi_label=args.multilabel,
         call_tqdm=True,

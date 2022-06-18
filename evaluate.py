@@ -10,7 +10,7 @@ from sdg_clf.utils import get_metrics, set_metrics_to_device, reset_metrics, upd
 def evaluate(method: str = "sdg_clf", tweet: bool = False, split: str = "test",
              model_types: Union[str, list[str]] = None,
              model_weights: Union[str, list[str]] = None, n_samples: int = None, overwrite: bool = False,
-             print_latex: bool = False):
+             print_latex: bool = False, return_preds: bool = False):
     if tweet:
         name_ds = "twitter"
     else:
@@ -46,6 +46,8 @@ def evaluate(method: str = "sdg_clf", tweet: bool = False, split: str = "test",
             predictions = combine_predictions(predictions, threshold)[:n_samples]
         else:
             predictions = torch.stack(predictions, dim=0)
+        if return_preds:
+            return predictions
     else:
         predictions = get_predictions(method=method, tweet=tweet, split=split, n_samples=n_samples, overwrite=overwrite)
         threshold = 0.5
@@ -104,14 +106,22 @@ def evaluate(method: str = "sdg_clf", tweet: bool = False, split: str = "test",
     return results
 
 
-# evaluate("sdg_clf", tweet=False, model_types="roberta-large", model_weights="best_roberta-large.pt")  # passed
-# evaluate("sdg_clf", tweet=True, model_types="roberta-large", model_weights="best_roberta-large.pt")  # passed
-# evaluate("osdg", tweet=False, n_samples=2, overwrite=True)  # passed
-# evaluate("osdg", tweet=True, n_samples=2, overwrite=True)  # passed
-# evaluate("aurora", tweet=False, n_samples=2, overwrite=True)  # passed
-# evaluate("aurora", tweet=True, n_samples=2, overwrite=True)  # passed
-# evaluate("sdg_clf", tweet=False, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])  # passed
-# evaluate("sdg_clf", tweet=True, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])  # passed
-evaluate("osdg", tweet=True, n_samples=1400, overwrite=True)  # passed
-evaluate("osdg", tweet=False, n_samples=1400, overwrite=True)  # passed
-
+if __name__ == "__main__":
+    # evaluate("sdg_clf", tweet=False, model_types="roberta-large", model_weights="best_roberta-large.pt")  # passed
+    # evaluate("sdg_clf", tweet=True, model_types="roberta-large", model_weights="best_roberta-large.pt")  # passed
+    # evaluate("osdg", tweet=False, n_samples=2, overwrite=True)  # passed
+    # evaluate("osdg", tweet=True, n_samples=2, overwrite=True)  # passed
+    # evaluate("aurora", tweet=False, n_samples=2, overwrite=True)  # passed
+    # evaluate("aurora", tweet=True, n_samples=2, overwrite=True)  # passed
+    # evaluate("sdg_clf", tweet=False, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])  # passed
+    # evaluate("sdg_clf", tweet=True, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])  # passed
+    # evaluate("osdg", tweet=True, n_samples=1400, overwrite=True)  # passed
+    # evaluate("osdg", tweet=False, n_samples=1400, overwrite=True)  # passed
+    # evaluate("sdg_clf", tweet=False, model_types="roberta-base", model_weights="best_roberta-base.pt", print_latex=True)
+    # evaluate("sdg_clf", tweet=False, model_types="roberta-large", model_weights="best_roberta-large.pt", print_latex=True)
+    # evaluate("sdg_clf", tweet=False, model_types="albert-large-v2", model_weights="best_albert.pt", print_latex=True)
+    # evaluate("sdg_clf", tweet=False, model_types="microsoft/deberta-v3-large", model_weights="best_deberta.pt", print_latex=True)
+    # evaluate("sdg_clf", tweet=False, model_types=["roberta-large", "microsoft/deberta-v3-large"],
+    #          model_weights=["best_roberta-large.pt", "best_deberta.pt"], print_latex=True)
+    evaluate("sdg_clf", tweet=False, model_types=["roberta-large", "albert-large-v2", "microsoft/deberta-v3-large"],
+             model_weights=["best_roberta-large.pt", "best_albert.pt", "best_deberta.pt"], print_latex=True)

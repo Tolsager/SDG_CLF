@@ -1,23 +1,73 @@
 # IMPORTS
-import numpy as np
-import torch
-
-import pandas as pd
 import glob
-from nltk import tokenize
-from transformers import BertTokenizer, TFBertModel, BertConfig
-from transformers.utils.dummy_tf_objects import TFBertMainLayer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+import nltk
+import numpy as np
+import pandas as pd
 import tensorflow as tf
+import torch
+from nltk import tokenize
 from tensorflow import convert_to_tensor
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from transformers import BertTokenizer, TFBertModel
+import pandas as pd
+from transformers import BertConfig, BertTokenizer
+from nltk import tokenize
+from sklearn.model_selection import train_test_split
+from tensorflow import convert_to_tensor
+from transformers import TFBertModel, BertConfig
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.initializers import TruncatedNormal
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
+from keras.metrics import BinaryAccuracy, Precision, Recall
+import time
+
+nltk.download("punkt")
 
 #our files
 import datasets
+
+# def create_model(label=None):
+#     config=BertConfig.from_pretrained(
+#                                     "bert-base-multilingual-uncased",
+#                                      num_labels=2,
+#                                      hidden_dropout_prob=0.2,
+#                                      attention_probs_dropout_prob=0.2)
+#     bert=TFBertModel.from_pretrained(
+#                                     "bert-base-multilingual-uncased",
+#                                     config=config)
+#     bert_layer=bert.layers[0]
+#     input_ids_layer=Input(
+#                         shape=(512),
+#                         name="input_ids",
+#                         dtype="int32")
+#     input_attention_masks_layer=Input(
+#                                     shape=(512),
+#                                     name="attention_masks",
+#                                     dtype="int32")
+#     bert_model=bert_layer(
+#                         input_ids_layer,
+#                         input_attention_masks_layer)
+#     target_layer=Dense(
+#                     units=1,
+#                     kernel_initializer=TruncatedNormal(stddev=config.initializer_range),
+#                     name="target_layer",
+#                     activation="sigmoid")(bert_model[1])
+#     model=Model(
+#                 inputs=[input_ids_layer, input_attention_masks_layer],
+#                 outputs=target_layer,)
+#                 # name="model_"+label.replace(".", "_"))
+#     # optimizer=Adam(
+#     #             learning_rate=5e-05,
+#     #             epsilon=1e-08,
+#     #             decay=0.01,
+#     #             clipnorm=1.0)
+#     # model.compile(
+#     #             optimizer=optimizer,
+#     #             loss="binary_crossentropy",
+#     #             metrics=[BinaryAccuracy(), Precision(), Recall()])
+#     return model
 
 def tokenize_abstracts(abstracts):
     """For a given texts, adds '[CLS]' and '[SEP]' tokens
@@ -102,7 +152,9 @@ def models_predict(directory, inputs, attention_masks, float_to_percent=False):
     """
     models=glob.glob(f"{directory}*.h5")
     predictions_dict={}
+    # model = create_model()
     for _ in models:
+        # model.load_weights(_)
         model=tf.keras.models.load_model(_)
         #predictions=model.predict_step([inputs, attention_masks])
         predictions = model.predict([inputs, attention_masks])
@@ -111,6 +163,7 @@ def models_predict(directory, inputs, attention_masks, float_to_percent=False):
             predictions=[float_to_percents(_) for _ in predictions]
         predictions_dict[model.name]=predictions
         del predictions, model
+        # del predictions
     return predictions_dict
 
   

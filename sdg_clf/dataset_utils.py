@@ -310,9 +310,9 @@ def load_ds_dict(tokenizer_type: str, tweet: bool = True):
     return ds_dict_tokens
 
 
-def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool = True, n_samples: int = None):
+def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool = True):
     ds_dict = get_dataset(tokenizer_type, tweet=tweet)
-    ds = ds_dict[split][:n_samples]
+    ds = ds_dict[split]
     if tweet:
         ds.set_format("pt", ["input_ids", "attention_mask"])
     else:

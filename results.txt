@@ -1,0 +1,468 @@
+Dataset: Scopus
+Split: test
+Method : sdg_clf
+Models: ['roberta-large']
+Threshold: 0.19
+
+Overall metrics
+accuracy: 0.5078 precision: 0.7463 recall: 0.6253 f1: 0.6805 
+
+Metrics per SDG
+sdg1: precision: 0.68 recall: 0.2881 f1: 0.4048 
+sdg2: precision: 0.875 recall: 0.6842 f1: 0.7679 
+sdg3: precision: 0.8821 recall: 0.6213 f1: 0.729 
+sdg4: precision: 0.7778 recall: 0.7259 f1: 0.751 
+sdg5: precision: 0.7917 recall: 0.76 f1: 0.7755 
+sdg6: precision: 0.7585 recall: 0.8351 f1: 0.7949 
+sdg7: precision: 0.9016 recall: 0.5428 f1: 0.6776 
+sdg8: precision: 0.7945 recall: 0.5918 f1: 0.6784 
+sdg9: precision: 0.6623 recall: 0.3592 f1: 0.4658 
+sdg10: precision: 0.6389 recall: 0.4694 f1: 0.5412 
+sdg11: precision: 0.7808 recall: 0.6786 f1: 0.7261 
+sdg12: precision: 0.7667 recall: 0.4726 f1: 0.5847 
+sdg13: precision: 0.4946 recall: 0.7712 f1: 0.6026 
+sdg14: precision: 0.8649 recall: 0.7529 f1: 0.805 
+sdg15: precision: 0.6067 recall: 0.7105 f1: 0.6545 
+sdg16: precision: 0.7111 recall: 0.7111 f1: 0.7111 
+sdg17: precision: 0.4146 recall: 0.6071 f1: 0.4928 
+
+
+
+Dataset: Twitter
+Split: test
+Method : sdg_clf
+Models: ['roberta-large']
+Threshold: 0.81
+
+Overall metrics
+accuracy: 0.8359 precision: 0.8668 recall: 0.7904 f1: 0.8268 
+
+Metrics per SDG
+sdg1: precision: 0.7743 recall: 0.5217 f1: 0.6233 
+sdg2: precision: 0.8778 recall: 0.783 f1: 0.8277 
+sdg3: precision: 0.8837 recall: 0.7631 f1: 0.819 
+sdg4: precision: 0.9121 recall: 0.8833 f1: 0.8975 
+sdg5: precision: 0.86 recall: 0.8467 f1: 0.8533 
+sdg6: precision: 0.9307 recall: 0.9076 f1: 0.919 
+sdg7: precision: 0.9395 recall: 0.8924 f1: 0.9154 
+sdg8: precision: 0.8392 recall: 0.5769 f1: 0.6838 
+sdg9: precision: 0.6898 recall: 0.6105 f1: 0.6477 
+sdg10: precision: 0.7478 recall: 0.5838 f1: 0.6557 
+sdg11: precision: 0.8706 recall: 0.7076 f1: 0.7807 
+sdg12: precision: 0.8199 recall: 0.6257 f1: 0.7098 
+sdg13: precision: 0.7325 recall: 0.7638 f1: 0.7478 
+sdg14: precision: 0.9468 recall: 0.8501 f1: 0.8959 
+sdg15: precision: 0.7896 recall: 0.6833 f1: 0.7326 
+sdg16: precision: 0.8801 recall: 0.7871 f1: 0.831 
+sdg17: precision: 0.6625 recall: 0.5687 f1: 0.612 
+
+
+
+Dataset: Scopus
+Split: test
+Method : osdg
+Number of samples: 2
+
+Overall metrics
+accuracy: 0.0 precision: 0.4 recall: 0.6667 f1: 0.5 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg4: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Scopus
+Split: test
+Method : sdg_clf
+Models: ['roberta-large']
+Threshold: 0.19
+
+Overall metrics
+accuracy: 0.5078 precision: 0.7463 recall: 0.6253 f1: 0.6805 
+
+Metrics per SDG
+sdg1: precision: 0.68 recall: 0.2881 f1: 0.4048 
+sdg2: precision: 0.875 recall: 0.6842 f1: 0.7679 
+sdg3: precision: 0.8821 recall: 0.6213 f1: 0.729 
+sdg4: precision: 0.7778 recall: 0.7259 f1: 0.751 
+sdg5: precision: 0.7917 recall: 0.76 f1: 0.7755 
+sdg6: precision: 0.7585 recall: 0.8351 f1: 0.7949 
+sdg7: precision: 0.9016 recall: 0.5428 f1: 0.6776 
+sdg8: precision: 0.7945 recall: 0.5918 f1: 0.6784 
+sdg9: precision: 0.6623 recall: 0.3592 f1: 0.4658 
+sdg10: precision: 0.6389 recall: 0.4694 f1: 0.5412 
+sdg11: precision: 0.7808 recall: 0.6786 f1: 0.7261 
+sdg12: precision: 0.7667 recall: 0.4726 f1: 0.5847 
+sdg13: precision: 0.4946 recall: 0.7712 f1: 0.6026 
+sdg14: precision: 0.8649 recall: 0.7529 f1: 0.805 
+sdg15: precision: 0.6067 recall: 0.7105 f1: 0.6545 
+sdg16: precision: 0.7111 recall: 0.7111 f1: 0.7111 
+sdg17: precision: 0.4146 recall: 0.6071 f1: 0.4928 
+
+
+
+Dataset: Twitter
+Split: test
+Method : sdg_clf
+Models: ['roberta-large']
+Threshold: 0.81
+
+Overall metrics
+accuracy: 0.8359 precision: 0.8668 recall: 0.7904 f1: 0.8268 
+
+Metrics per SDG
+sdg1: precision: 0.7743 recall: 0.5217 f1: 0.6233 
+sdg2: precision: 0.8778 recall: 0.783 f1: 0.8277 
+sdg3: precision: 0.8837 recall: 0.7631 f1: 0.819 
+sdg4: precision: 0.9121 recall: 0.8833 f1: 0.8975 
+sdg5: precision: 0.86 recall: 0.8467 f1: 0.8533 
+sdg6: precision: 0.9307 recall: 0.9076 f1: 0.919 
+sdg7: precision: 0.9395 recall: 0.8924 f1: 0.9154 
+sdg8: precision: 0.8392 recall: 0.5769 f1: 0.6838 
+sdg9: precision: 0.6898 recall: 0.6105 f1: 0.6477 
+sdg10: precision: 0.7478 recall: 0.5838 f1: 0.6557 
+sdg11: precision: 0.8706 recall: 0.7076 f1: 0.7807 
+sdg12: precision: 0.8199 recall: 0.6257 f1: 0.7098 
+sdg13: precision: 0.7325 recall: 0.7638 f1: 0.7478 
+sdg14: precision: 0.9468 recall: 0.8501 f1: 0.8959 
+sdg15: precision: 0.7896 recall: 0.6833 f1: 0.7326 
+sdg16: precision: 0.8801 recall: 0.7871 f1: 0.831 
+sdg17: precision: 0.6625 recall: 0.5687 f1: 0.612 
+
+
+
+Dataset: Scopus
+Split: test
+Method : osdg
+Number of samples: 2
+
+Overall metrics
+accuracy: 0.0 precision: 0.4 recall: 0.6667 f1: 0.5 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg4: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Twitter
+Split: test
+Method : osdg
+Number of samples: 2
+
+Overall metrics
+accuracy: 0.0 precision: 0.0 recall: 0.0 f1: 0.0 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg4: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Twitter
+Split: test
+Method : osdg
+Number of samples: 2
+
+Overall metrics
+accuracy: 0.0 precision: 0.0 recall: 0.0 f1: 0.0 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg4: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Scopus
+Split: test
+Method : aurora
+Number of samples: 2
+
+Overall metrics
+accuracy: 0.0 precision: 0.4 recall: 0.6667 f1: 0.5 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg4: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Twitter
+Split: test
+Method : aurora
+Number of samples: 2
+
+Overall metrics
+accuracy: 1.0 precision: 1.0 recall: 1.0 f1: 1.0 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg4: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Scopus
+Split: test
+Method : aurora
+Number of samples: 2
+
+Overall metrics
+accuracy: 0.0 precision: 0.4 recall: 0.6667 f1: 0.5 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg4: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Twitter
+Split: test
+Method : aurora
+Number of samples: 2
+
+Overall metrics
+accuracy: 1.0 precision: 1.0 recall: 1.0 f1: 1.0 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg4: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Twitter
+Split: test
+Method : aurora
+Number of samples: 2
+
+Overall metrics
+accuracy: 1.0 precision: 1.0 recall: 1.0 f1: 1.0 
+
+Metrics per SDG
+sdg1: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg2: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg3: precision: 1.0 recall: 1.0 f1: 1.0 
+sdg4: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg5: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg6: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg7: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg8: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg9: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg10: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg11: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg12: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg13: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg14: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg15: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg16: precision: 0.0 recall: 0.0 f1: 0.0 
+sdg17: precision: 0.0 recall: 0.0 f1: 0.0 
+
+
+
+Dataset: Scopus
+Split: test
+Method : sdg_clf
+Models: ['roberta-large', 'albert-large-v2']
+Threshold: 0.33
+
+Overall metrics
+accuracy: 0.5071 precision: 0.766 recall: 0.6194 f1: 0.6849 
+
+Metrics per SDG
+sdg1: precision: 0.75 recall: 0.3051 f1: 0.4337 
+sdg2: precision: 0.8636 recall: 0.7143 f1: 0.7819 
+sdg3: precision: 0.8416 recall: 0.6179 f1: 0.7126 
+sdg4: precision: 0.8417 recall: 0.7481 f1: 0.7922 
+sdg5: precision: 0.8108 recall: 0.8 f1: 0.8054 
+sdg6: precision: 0.829 recall: 0.8511 f1: 0.8399 
+sdg7: precision: 0.9096 recall: 0.5296 f1: 0.6694 
+sdg8: precision: 0.7308 recall: 0.5816 f1: 0.6477 
+sdg9: precision: 0.6774 recall: 0.2958 f1: 0.4118 
+sdg10: precision: 0.561 recall: 0.4694 f1: 0.5111 
+sdg11: precision: 0.7755 recall: 0.6786 f1: 0.7238 
+sdg12: precision: 0.7143 recall: 0.4795 f1: 0.5738 
+sdg13: precision: 0.5541 recall: 0.6949 f1: 0.6165 
+sdg14: precision: 0.8442 recall: 0.7647 f1: 0.8025 
+sdg15: precision: 0.6579 recall: 0.6579 f1: 0.6579 
+sdg16: precision: 0.725 recall: 0.6444 f1: 0.6824 
+sdg17: precision: 0.48 recall: 0.6429 f1: 0.5496 
+
+
+
+Dataset: Scopus
+Split: test
+Method : sdg_clf
+Models: ['roberta-large', 'albert-large-v2']
+Threshold: 0.33
+
+Overall metrics
+accuracy: 0.5071 precision: 0.766 recall: 0.6194 f1: 0.6849 
+
+Metrics per SDG
+sdg1: precision: 0.75 recall: 0.3051 f1: 0.4337 
+sdg2: precision: 0.8636 recall: 0.7143 f1: 0.7819 
+sdg3: precision: 0.8416 recall: 0.6179 f1: 0.7126 
+sdg4: precision: 0.8417 recall: 0.7481 f1: 0.7922 
+sdg5: precision: 0.8108 recall: 0.8 f1: 0.8054 
+sdg6: precision: 0.829 recall: 0.8511 f1: 0.8399 
+sdg7: precision: 0.9096 recall: 0.5296 f1: 0.6694 
+sdg8: precision: 0.7308 recall: 0.5816 f1: 0.6477 
+sdg9: precision: 0.6774 recall: 0.2958 f1: 0.4118 
+sdg10: precision: 0.561 recall: 0.4694 f1: 0.5111 
+sdg11: precision: 0.7755 recall: 0.6786 f1: 0.7238 
+sdg12: precision: 0.7143 recall: 0.4795 f1: 0.5738 
+sdg13: precision: 0.5541 recall: 0.6949 f1: 0.6165 
+sdg14: precision: 0.8442 recall: 0.7647 f1: 0.8025 
+sdg15: precision: 0.6579 recall: 0.6579 f1: 0.6579 
+sdg16: precision: 0.725 recall: 0.6444 f1: 0.6824 
+sdg17: precision: 0.48 recall: 0.6429 f1: 0.5496 
+
+
+
+Dataset: Twitter
+Split: test
+Method : sdg_clf
+Models: ['roberta-large', 'albert-large-v2']
+Threshold: 0.5
+
+Overall metrics
+accuracy: 0.8425 precision: 0.8723 recall: 0.8042 f1: 0.8369 
+
+Metrics per SDG
+sdg1: precision: 0.7728 recall: 0.5456 f1: 0.6397 
+sdg2: precision: 0.8788 recall: 0.8107 f1: 0.8434 
+sdg3: precision: 0.8758 recall: 0.7952 f1: 0.8335 
+sdg4: precision: 0.9202 recall: 0.8902 f1: 0.9049 
+sdg5: precision: 0.8592 recall: 0.8614 f1: 0.8603 
+sdg6: precision: 0.9381 recall: 0.913 f1: 0.9254 
+sdg7: precision: 0.9425 recall: 0.9014 f1: 0.9215 
+sdg8: precision: 0.8493 recall: 0.5925 f1: 0.6981 
+sdg9: precision: 0.754 recall: 0.5968 f1: 0.6662 
+sdg10: precision: 0.7715 recall: 0.5803 f1: 0.6624 
+sdg11: precision: 0.8802 recall: 0.7262 f1: 0.7958 
+sdg12: precision: 0.791 recall: 0.6573 f1: 0.718 
+sdg13: precision: 0.7488 recall: 0.774 f1: 0.7612 
+sdg14: precision: 0.9393 recall: 0.8666 f1: 0.9015 
+sdg15: precision: 0.7987 recall: 0.6963 f1: 0.744 
+sdg16: precision: 0.8826 recall: 0.795 f1: 0.8365 
+sdg17: precision: 0.697 recall: 0.5896 f1: 0.6388 

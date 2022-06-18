@@ -190,14 +190,14 @@ def create_base_dataset(tweet: bool = True, nrows: int = None):
     ds_dict = split_dataset(ds, tweet=tweet)
     path_save = os.path.join(path_data, "processed")
     if tweet:
-        path_save = os.path.join(path_save, "tweets/base")
+        path_save = os.path.join(path_save, "twitter/base")
     else:
         path_save = os.path.join(path_save, "scopus/base")
     ds_dict.save_to_disk(path_save)
 
 
 def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = True, max_length: int = 260,
-                     path_data: str = "data", ):
+                     ):
     """
     Tokenizes the dataset
 
@@ -211,9 +211,9 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
         dataset dict with the output from the tokenizer
 
     """
-    path_data = os.path.join(path_data, "processed")
+    path_data = "data/processed"
     if tweet:
-        ds_dict = datasets.load_from_disk(os.path.join(path_data, "tweets/base"))
+        ds_dict = datasets.load_from_disk(os.path.join(path_data, "twitter/base"))
         textname = "text"
     else:
         ds_dict = datasets.load_from_disk(os.path.join(path_data, "scopus/base"))
@@ -251,15 +251,14 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
         processed dataset for training with transformer outputs and labels
     """
     # load tokenized dataset if exists
-    path_data = "data"
-    path_data1 = os.path.join(path_data, "processed")
+    path_data = "data/processed"
     if tweet:
-        path_data1 = os.path.join(path_data1, "tweets")
+        path_data = os.path.join(path_data, "twitter")
     else:
-        path_data1 = os.path.join(path_data1, "scopus")
-    path_base = os.path.join(path_data1, "base")
+        path_data = os.path.join(path_data, "scopus")
+    path_base = os.path.join(path_data, "base")
 
-    path_ds_dict_tokens = os.path.join(path_data1, tokenizer_type)
+    path_ds_dict_tokens = os.path.join(path_data, tokenizer_type)
     if os.path.exists(path_ds_dict_tokens) and not overwrite:
         ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
         ds_dict_base = datasets.load_from_disk(path_base)
@@ -275,8 +274,8 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
     ds_dict_base = datasets.load_from_disk(path_base)
 
     tokenizer = get_tokenizer(tokenizer_type)
-    ds_dict_tokens = tokenize_dataset(tokenizer, tweet=tweet, max_length=max_length, path_data=path_data)
-    path_save = path_data1 + f"/{tokenizer_type}"
+    ds_dict_tokens = tokenize_dataset(tokenizer, tweet=tweet, max_length=max_length)
+    path_save = path_data + f"/{tokenizer_type}"
     ds_dict_tokens.save_to_disk(path_save)
 
     for split in ds_dict_base.keys():
@@ -286,19 +285,19 @@ def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = Fal
     return ds_dict_tokens
 
 
-def load_ds_dict(tokenizer_type: str, tweet: bool = True, path_data: str = "data"):
+def load_ds_dict(tokenizer_type: str, tweet: bool = True):
     """
     Load an existing dataset from the files
 
         Args:
             tokenizer_type (str): name of a huggingface tokenizer e.g. bert-base-uncased
             tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
-            path_data (str, optional): path to data directory. Defaults to "data"
 
         Returns:
             dict of datasets.Dataset: Dictionary of the splitted dataset
         """
-    path_ds = os.path.join(path_data, "processed", "tweets" if tweet else "scopus")
+    path_data = "data"
+    path_ds = os.path.join(path_data, "processed", "twitter" if tweet else "scopus")
     path_ds_dict_tokens = os.path.join(path_ds, tokenizer_type)
     ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
 

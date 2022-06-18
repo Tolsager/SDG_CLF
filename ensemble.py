@@ -7,10 +7,9 @@ import matplotlib.pyplot as plt
 from sdg_clf.dataset_utils import get_dataset
 import torch
 from typing import Union
-from sdg_clf.utils import prepare_long_text_input
+from sdg_clf.utils import prepare_long_text_input, get_metrics
 from sdg_clf.model import load_model
 from make_predictions import get_tweet_preds, get_scopus_preds
-from sdg_clf.trainer import get_metrics
 from sdg_clf.utils import set_metrics_to_device, reset_metrics, update_metrics, compute_metrics
 
 

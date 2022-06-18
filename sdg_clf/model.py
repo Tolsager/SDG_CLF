@@ -81,7 +81,8 @@ def load_model(weights: str, model_type: str):
         model = transformers.AutoModelForSequenceClassification.from_pretrained(path_pretrained_model, num_labels=17)
     else:
         model = transformers.AutoModelForSequenceClassification.from_pretrained(model_type, num_labels=17)
-        model.save_pretrained("pretrained_models")
-    model.cuda()
-    model.load_state_dict(torch.load(os.path.join("finetuned_models", weights)))
+        model.save_pretrained(f"pretrained_models/{model_type}")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+    model.load_state_dict(torch.load(os.path.join("finetuned_models", weights), map_location=device))
     return model

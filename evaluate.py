@@ -111,5 +111,7 @@ def evaluate(method: str = "sdg_clf", tweet: bool = False, split: str = "test",
 # evaluate("aurora", tweet=False, n_samples=2, overwrite=True)  # passed
 # evaluate("aurora", tweet=True, n_samples=2, overwrite=True)  # passed
 # evaluate("sdg_clf", tweet=False, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])  # passed
-evaluate("sdg_clf", tweet=True, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])
+# evaluate("sdg_clf", tweet=True, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])  # passed
+evaluate("osdg", tweet=True, n_samples=1400, overwrite=True)  # passed
+evaluate("osdg", tweet=False, n_samples=1400, overwrite=True)  # passed
 

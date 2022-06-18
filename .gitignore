@@ -5,13 +5,14 @@ pretrained_models/
 *.csv
 .vscode
 wandb
-data
 EDA/*.png
 playground.py
 .idea
 sdg_clf/osdg_ip.py
 aurora/BERT_models/
 predictions
+data/processed
+api_key.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

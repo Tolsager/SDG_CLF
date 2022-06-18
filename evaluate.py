@@ -1,8 +1,10 @@
+import argparse
+from typing import Union
+
+import datasets
 import torch.cuda
 
 from sdg_clf.evaluation import get_predictions, get_optimal_threshold, avg_predictions_ensemble, combine_predictions
-from typing import Union
-import datasets
 from sdg_clf.utils import get_metrics, set_metrics_to_device, reset_metrics, update_metrics, compute_metrics, \
     load_pickle
 
@@ -107,21 +109,28 @@ def evaluate(method: str = "sdg_clf", tweet: bool = False, split: str = "test",
 
 
 if __name__ == "__main__":
-    # evaluate("sdg_clf", tweet=False, model_types="roberta-large", model_weights="best_roberta-large.pt")  # passed
-    # evaluate("sdg_clf", tweet=True, model_types="roberta-large", model_weights="best_roberta-large.pt")  # passed
-    # evaluate("osdg", tweet=False, n_samples=2, overwrite=True)  # passed
-    # evaluate("osdg", tweet=True, n_samples=2, overwrite=True)  # passed
-    # evaluate("aurora", tweet=False, n_samples=2, overwrite=True)  # passed
-    # evaluate("aurora", tweet=True, n_samples=2, overwrite=True)  # passed
-    # evaluate("sdg_clf", tweet=False, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])  # passed
-    # evaluate("sdg_clf", tweet=True, model_types=["roberta-large", "albert-large-v2"], model_weights=["best_roberta-large.pt", "best_albert.pt"])  # passed
-    # evaluate("osdg", tweet=True, n_samples=1400, overwrite=True)  # passed
-    # evaluate("osdg", tweet=False, n_samples=1400, overwrite=True)  # passed
-    # evaluate("sdg_clf", tweet=False, model_types="roberta-base", model_weights="best_roberta-base.pt", print_latex=True)
-    # evaluate("sdg_clf", tweet=False, model_types="roberta-large", model_weights="best_roberta-large.pt", print_latex=True)
-    # evaluate("sdg_clf", tweet=False, model_types="albert-large-v2", model_weights="best_albert.pt", print_latex=True)
-    # evaluate("sdg_clf", tweet=False, model_types="microsoft/deberta-v3-large", model_weights="best_deberta.pt", print_latex=True)
-    # evaluate("sdg_clf", tweet=False, model_types=["roberta-large", "microsoft/deberta-v3-large"],
-    #          model_weights=["best_roberta-large.pt", "best_deberta.pt"], print_latex=True)
-    evaluate("sdg_clf", tweet=False, model_types=["roberta-large", "albert-large-v2", "microsoft/deberta-v3-large"],
-             model_weights=["best_roberta-large.pt", "best_albert.pt", "best_deberta.pt"], print_latex=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--method", help="Method to evaluate from {sdg_clf, aurora, osdg}", default="sdg_clf")
+    parser.add_argument("-s", "--split",
+                        help="Split to evaluate on. Twitter data has {train, validation, test} while Scoups data has {train, test}",
+                        action='store_true', default=False)
+    parser.add_argument("-t", "--tweet", help="If True, evaluate on Twitter data, else Scopus", action="store_true",
+                        default=False)
+    parser.add_argument("-mt", "--model_types", help="names of huggingface models e.g. -mt roberta-base roberta-large",
+                        nargs="+", default=[])
+    parser.add_argument("-mw", "--model_weights",
+                        help="names of model weight files e.g. -mw best_roberta-base.pt best_roberta-large.pt", nargs="+",
+                        default=[])
+    parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
+    parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
+    parser.add_argument("-n", "--n_samples", help="number of samples to evaluate on. Defaults to all samples", type=int,
+                        default=None)
+    parser.add_argument("-p", "--print_latex", help="if the results per SDG should be printed as a latex table.",
+                        action="store_true", default=False)
+    parser.add_argument("-o", "--overwrite", help="If true, overwrite potential existing predictions", action="store_false",
+                        default=False)
+    args = parser.parse_args()
+    evaluate(method=args.method, tweet=args.tweet, split=args.split, model_types=args.model_types,
+             model_weights=args.model_weights, n_samples=args.n_samples, print_latex=args.print_latex,
+             overwrite=args.overwrite)
+

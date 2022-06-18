@@ -5,6 +5,9 @@ sns.set()
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
+## Uses the Weights and Biases API to construct plots from training and validation.
+
+
 if __name__ == '__main__':
     import wandb
 

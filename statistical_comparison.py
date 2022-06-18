@@ -4,7 +4,18 @@ from scipy.stats import binom, beta
 from evaluate import evaluate
 
 
-def mcnemar_test(model1, model2, tweet: bool = False, regular: bool = True):
+def mcnemar_test(model1: dict, model2: dict, tweet: bool = False, regular: bool = True):
+    """
+    Args:
+        model1: (dict): dictionary containing model type and local weights
+        model2: (dict): dictionary containing model type and local weights
+        tweet: (bool): Determines if the test is on the Twitter or Scopus test set, defaults to False i.e. Scopus
+        regular: (bool): Full prediction comparison if True one-to-one comparison if False. Defaults to True
+
+    Performs a McNemar test between two models based on accuracy
+    Returns: p value of the test, estimated performance difference between the two models,
+             and the contingency table which contains the test statistics
+    """
     if tweet:
         labels = datasets.load_from_disk("data/processed/tweets/base")["test"]["label"]
     else:

@@ -9,8 +9,8 @@ data
 EDA/*.png
 playground.py
 .idea
-Comparison_algorithms/eval_osdg/osdg_ip.py
-Comparison_algorithms/eval_AURORA_mbert/BERT_models/
+sdg_clf/osdg_ip.py
+aurora/BERT_models/
 predictions
 
 # Byte-compiled / optimized / DLL files

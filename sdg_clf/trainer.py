@@ -5,12 +5,11 @@ import numpy as np
 from typing import Callable, Union
 from tqdm import tqdm, trange
 from datetime import datetime
-import torchmetrics
 import transformers
 import wandb
-import pickle
+
+from sdg_clf.utils import get_metrics
 from .dataset_utils import load_ds_dict
-import datasets
 
 
 class Trainer:
@@ -528,33 +527,6 @@ class SDGTrainer(Trainer):
         model_outputs = self.model(**model_inputs).logits.sigmoid()
         prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
-
-
-def get_metrics(threshold, multilabel=False, num_classes=17):
-    metrics = {
-        "accuracy": {
-            "goal": "maximize",
-            "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True, multiclass=not multilabel),
-        },
-        # "auroc": {
-        #     "goal": "maximize",
-        #     "metric": torchmetrics.AUROC(num_classes=num_classes),
-        # },
-        "precision": {
-            "goal": "maximize",
-            "metric": torchmetrics.Precision(threshold=threshold, num_classes=num_classes,
-                                             multiclass=not multilabel),
-        },
-        "recall": {
-            "goal": "maximize",
-            "metric": torchmetrics.Recall(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
-        },
-        "f1": {
-            "goal": "maximize",
-            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
-        },
-    }
-    return metrics
 
 
 if __name__ == "__main__":

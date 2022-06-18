@@ -1,39 +1,73 @@
 # IMPORTS
-
-import pandas as pd
 import glob
-from nltk import tokenize
-from transformers import BertTokenizer, TFBertModel, BertConfig
-from transformers.utils.dummy_tf_objects import TFBertMainLayer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+import nltk
+import numpy as np
+import pandas as pd
 import tensorflow as tf
+import torch
+from nltk import tokenize
 from tensorflow import convert_to_tensor
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from transformers import BertTokenizer, TFBertModel
+import pandas as pd
+from transformers import BertConfig, BertTokenizer
+from nltk import tokenize
+from sklearn.model_selection import train_test_split
+from tensorflow import convert_to_tensor
+from transformers import TFBertModel, BertConfig
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.initializers import TruncatedNormal
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
+from keras.metrics import BinaryAccuracy, Precision, Recall
+import time
+
+nltk.download("punkt")
 
 #our files
 import datasets
 
-# SET PARAMETERS
-df = datasets.load_from_disk("../../data/processed/scopus/base")
-DATA=df['test']['Abstract']
-
-MODELS="./BERT_models/" # MODELS need to be a directory where the models are located. (Multi-lingual BERT, .h5 format a Hierarchical Data Format (HDF) version 5)
-
-SAVE_PREDICTIONS_TO="./predictions" # SAVE_PREDICTIONS_TO need to be a directory where the output file with the predictions is written to.
-
-"""
-## Example:
-textcorpus_df=pd.read_excel("C:/SDG/data/dutch_texts.xlsx", sheet_name=2) # Load excel sheet as dataframe
-DATA=list(textcorpus_df.abstract) # get column with abstracts and transform as python list
-MODELS="C:/SDG/models/SDG model v0.1/" #
-SAVE_PREDICTIONS_TO="C:/SDG/predictions"
-"""
-
-# PREPROCESS TEXTS
+# def create_model(label=None):
+#     config=BertConfig.from_pretrained(
+#                                     "bert-base-multilingual-uncased",
+#                                      num_labels=2,
+#                                      hidden_dropout_prob=0.2,
+#                                      attention_probs_dropout_prob=0.2)
+#     bert=TFBertModel.from_pretrained(
+#                                     "bert-base-multilingual-uncased",
+#                                     config=config)
+#     bert_layer=bert.layers[0]
+#     input_ids_layer=Input(
+#                         shape=(512),
+#                         name="input_ids",
+#                         dtype="int32")
+#     input_attention_masks_layer=Input(
+#                                     shape=(512),
+#                                     name="attention_masks",
+#                                     dtype="int32")
+#     bert_model=bert_layer(
+#                         input_ids_layer,
+#                         input_attention_masks_layer)
+#     target_layer=Dense(
+#                     units=1,
+#                     kernel_initializer=TruncatedNormal(stddev=config.initializer_range),
+#                     name="target_layer",
+#                     activation="sigmoid")(bert_model[1])
+#     model=Model(
+#                 inputs=[input_ids_layer, input_attention_masks_layer],
+#                 outputs=target_layer,)
+#                 # name="model_"+label.replace(".", "_"))
+#     # optimizer=Adam(
+#     #             learning_rate=5e-05,
+#     #             epsilon=1e-08,
+#     #             decay=0.01,
+#     #             clipnorm=1.0)
+#     # model.compile(
+#     #             optimizer=optimizer,
+#     #             loss="binary_crossentropy",
+#     #             metrics=[BinaryAccuracy(), Precision(), Recall()])
+#     return model
 
 def tokenize_abstracts(abstracts):
     """For a given texts, adds '[CLS]' and '[SEP]' tokens
@@ -118,7 +152,9 @@ def models_predict(directory, inputs, attention_masks, float_to_percent=False):
     """
     models=glob.glob(f"{directory}*.h5")
     predictions_dict={}
+    # model = create_model()
     for _ in models:
+        # model.load_weights(_)
         model=tf.keras.models.load_model(_)
         #predictions=model.predict_step([inputs, attention_masks])
         predictions = model.predict([inputs, attention_masks])
@@ -127,6 +163,7 @@ def models_predict(directory, inputs, attention_masks, float_to_percent=False):
             predictions=[float_to_percents(_) for _ in predictions]
         predictions_dict[model.name]=predictions
         del predictions, model
+        # del predictions
     return predictions_dict
 
   
@@ -140,30 +177,32 @@ def predictions_dict_to_df(predictions_dictionary):
     predictions_df.columns=[_.replace("model_", "").replace("_", ".") for _ in predictions_df.columns]
     predictions_df.insert(0, column="text", value=[_ for _ in range(len(predictions_df))])
     return predictions_df
-  
-
-def predictions_above_treshold(predictions_dataframe, treshold=0.95):
-    """Filters predictions above specified treshold.
-    Input is expected to be a dataframe of format:
-    | text N | the probability of the text N dealing with the target N | ... |
-    Output is of format:
-    {text N: [target N dealing with probability > trheshold with text N, ...], ...}
-    """
-    above_treshold_dict={}
-    above_treshold=predictions_dataframe.iloc[:,1:].apply(lambda row: row[row > treshold].index, axis=1)
-    for _ in range(len(above_treshold)):
-        above_treshold_dict[_]=list(above_treshold[_])
-    return above_treshold_dict
 
 
-# RUN
-if __name__ == "__main__":
-    abstracts=DATA
+def create_aurora_predictions(tweet: bool = False, split: str = "test", n_samples: int = 1400):
+    if tweet:
+        name_ds = "twitter"
+        name_text = "text"
+    else:
+        name_ds = "scopus"
+        name_text = "Abstract"
+    ds_dict = datasets.load_from_disk(f"data/processed/{name_ds}/base")
+    ds = ds_dict[split]
+    texts = ds[name_text][:n_samples]
+    abstracts=texts
     ids=abstracts_to_ids(abstracts)
     padded_ids=pad_ids(ids)
     masks=create_attention_masks(padded_ids)
     masks=convert_to_tensor(masks)
     inputs=convert_to_tensor(padded_ids)
-    predictions=models_predict(directory=MODELS, inputs=inputs, attention_masks=masks)
-    predictions_df=predictions_dict_to_df(predictions)
-    predictions_df.to_csv(f"{SAVE_PREDICTIONS_TO}/predictions_test_fixed.csv", index=False)
+    predictions=models_predict(directory="pretrained_models/mbert/", inputs=inputs, attention_masks=masks)
+    predictions=predictions_dict_to_df(predictions)
+    predictions = predictions[[str(i) for i in range(1,18)]]
+    predictions = predictions.values
+    predictions = np.where(predictions > 0.95, 1, 0)
+    predictions = torch.tensor(predictions)
+    return predictions
+
+
+
+

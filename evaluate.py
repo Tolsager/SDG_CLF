@@ -46,8 +46,6 @@ def evaluate(method: str = "sdg_clf", tweet: bool = False, split: str = "test",
             predictions = predictions[0]
         if not tweet:
             predictions = combine_predictions(predictions, threshold)[:n_samples]
-        else:
-            predictions = torch.stack(predictions, dim=0)
         if return_preds:
             return predictions
     else:

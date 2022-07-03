@@ -115,7 +115,7 @@ def combine_predictions(predictions: list[torch.tensor]) -> torch.tensor:
     total_prediction = torch.zeros(longest_prediction.shape)
     for prediction in predictions:
         prediction_counter[:prediction.shape[0]] += 1
-        total_prediction += prediction
+        total_prediction[:prediction.shape[0]] += prediction
     average_predictions = total_prediction / prediction_counter
     return average_predictions
 

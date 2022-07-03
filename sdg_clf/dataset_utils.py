@@ -129,6 +129,57 @@ def preprocess_dataset(
     return ds
 
 
+def osdg_mapping(sample: dict):
+    sample["text"] = sample["text"].lower()
+
+    # remove labels from the tweet
+    sdg_prog1 = re.compile(r"#(?:sdg)s?(\s+)?(\d+)?")
+    sample = remove_with_regex(sample, pattern=sdg_prog1)
+    sdg_prog2 = re.compile(r"(?:sdg)s?(\s?)(\d+)?")
+    sample = remove_with_regex(sample, pattern=sdg_prog2)
+    sdg_prog3 = re.compile(r"(sustainable development goals?\s?)(\d+)?")
+    sample = remove_with_regex(sample, pattern=sdg_prog3)
+    sdg_prog4 = re.compile(r"© \d\d(\d?)\d")
+    sample = remove_with_regex(sample, pattern=sdg_prog4)
+    sdg_prog5 = re.compile(r"elsevier\s+Ltd")
+    sample = remove_with_regex(sample, pattern=sdg_prog5)
+
+    # remove extra whitespace
+    sample["text"] = " ".join(sample["text"].split())
+
+    # create a label vector (only applicable for tweets)
+    label = [0] * 17
+    label[sample["sdg"] - 1] = 1
+    sample["label"] = label
+
+    return sample
+
+
+def preprocess_osdg():
+    # load the csv file into a huggingface dataset
+    # Set the encoding to latin to be able to read special characters such as ñ
+    df = pd.read_csv("data/raw/osdg.csv", encoding="latin", delimiter="\t")
+
+    df = df.drop_duplicates("text")
+    ds = datasets.Dataset.from_pandas(df)
+    # remove non-english text
+    ds = ds.filter(lambda sample: sample["labels_positive"] > sample["labels_negative"] and sample["agreement"] > 0.5)
+    ds = ds.map(
+        osdg_mapping, num_proc=1)
+
+    # remove redundant columns
+    ds = ds.remove_columns(
+        [
+            "doi",
+            "text_id",
+            "sdg",
+            "labels_positive",
+            "labels_negative",
+            "agreement", ]
+    )
+    return ds
+
+
 def split_dataset(
         ds: datasets.Dataset, tweet: bool = True
 ):

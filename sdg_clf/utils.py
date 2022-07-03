@@ -139,3 +139,20 @@ def load_pickle(path: str):
 def save_pickle(path: str, obj: object):
     with open(path, "wb") as f:
         pickle.dump(obj, f)
+def get_next_number(dir_path: str) -> int:
+    """
+    Get the next number in the directory.
+    Args:
+        dir_path: path to the directory with files enumerated as "anything_number.pkl"
+
+    Returns:
+        the next number in the sequence
+
+    """
+    files = os.listdir(dir_path)
+    if len(files) == 1:
+        return 0
+    else:
+        file_names = [os.path.splitext(f)[0] for f in files if not f.startswith(".")]
+        file_numbers = [int(name.split("_")[-1]) for name in file_names if "_" in name]
+        return max(file_numbers) + 1

@@ -8,6 +8,8 @@ import datasets
 import requests
 import torch
 from tqdm import tqdm
+import datasets
+import torchmetrics
 
 from .dataset_utils import create_base_dataset, get_dataloader, get_tokenizer
 from .model import load_model
@@ -16,9 +18,10 @@ from .utils import load_pickle, save_pickle, prepare_long_text_input
 
 
 # predicts the SDG classification for a given text by choosing a method of sdg_clf, aurora, or osdg
-def predict(text: str, method: str = "sdg_clf"):
+def predict(text: str, method: str = "sdg_clf", transformers: Union[base.Transformer, list[base.Transformer]] = None,
+            threshold: float = 0.5):
     if method == "sdg_clf":
-        prediction = predict_sdg_clf(text)
+        prediction = predict_sdg_clf(text, transformers=transformers, threshold=threshold)
     elif method == "osdg":
         prediction = predict_osdg(text)
     elif method == "aurora":
@@ -26,15 +29,84 @@ def predict(text: str, method: str = "sdg_clf"):
     return prediction
 
 
-def predict_sdg_clf(text: str, transformers: Union[base.Transformer, list[base.Transformer]]) -> torch.Tensor:
+def predict_aurora(text: str):
+    pass
+
+
+def get_average_predictions(text: str, transformers: Union[base.Transformer, list[base.Transformer]]) -> torch.Tensor:
     if isinstance(transformers, base.Transformer):
         transformers = [transformers]
     predictions = []
     for transformer in transformers:
         prediction = transformer.predict(text)
         predictions.append(prediction)
-    prediction = combine_predictions(predictions)
+    average_predictions = combine_predictions(predictions)
+    return average_predictions
+
+
+def threshold_predictions(predictions: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
+    threshold_predictions = predictions > threshold
+    return threshold_predictions
+
+
+def predict_any(threshold_predictions: torch.Tensor) -> torch.Tensor:
+    prediction = torch.any(threshold_predictions, dim=0, keepdim=True)
     return prediction
+
+
+def predict_sdg_clf(text: str, transformers: Union[base.Transformer, list[base.Transformer]] = None,
+                    threshold: float = 0.5) -> torch.Tensor:
+    if isinstance(transformers, base.Transformer):
+        transformers = [transformers]
+    predictions = []
+    for transformer in transformers:
+        prediction = transformer.predict(text)
+        predictions.append(prediction)
+    if len(transformers) != 1:
+        predictions = combine_predictions(predictions)
+    else:
+        predictions = predictions[0]
+    thresholded_predictions = threshold_predictions(predictions, threshold, threshold=threshold)
+    any_prediction = predict_any(thresholded_predictions)
+
+    return any_prediction
+
+
+def predict_no_threshold(text: str,
+                         transformers: Union[base.Transformer, list[base.Transformer]]) -> torch.Tensor:
+    if isinstance(transformers, base.Transformer):
+        transformers = [transformers]
+    predictions = []
+    for transformer in transformers:
+        prediction = transformer.predict(text)
+        predictions.append(prediction)
+    if len(transformers) != 1:
+        predictions = combine_predictions(predictions)
+    else:
+        predictions = predictions[0]
+
+    return predictions
+
+
+def get_optimal_threshold(predictions: list[torch.Tensor], labels: torch.Tensor) -> tuple[float]:
+    f1 = torchmetrics.F1Score(num_classes=17, multiclass=False)
+    # try 100 thresholds from 0.0 to 1.0
+    thresholds = torch.linspace(0.0, 1.0, 100)
+    best_f1 = 0.0
+    for threshold in thresholds:
+        f1.reset()
+        thresholded_predictions = [threshold_predictions(pred, threshold) for pred in predictions]
+        any_predictions = [predict_any(pred) for pred in thresholded_predictions]
+        any_predictions = torch.concat(any_predictions, dim=0)
+        f1.update(any_predictions, labels)
+        f1_score = f1.compute()
+        if f1_score > best_f1:
+            best_f1 = f1_score
+            best_threshold = threshold
+    best_threshold = best_threshold.item()
+    best_f1 = best_f1.item()
+
+    return (best_threshold, best_f1)
 
 
 def combine_predictions(predictions: list[torch.tensor]) -> torch.tensor:
@@ -44,8 +116,8 @@ def combine_predictions(predictions: list[torch.tensor]) -> torch.tensor:
     for prediction in predictions:
         prediction_counter[:prediction.shape[0]] += 1
         total_prediction += prediction
-    average_prediction = total_prediction / prediction_counter
-    return average_prediction
+    average_predictions = total_prediction / prediction_counter
+    return average_predictions
 
 
 def predict_osdg(text: str) -> torch.Tensor:

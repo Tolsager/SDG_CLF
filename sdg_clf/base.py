@@ -17,13 +17,13 @@ class Transformer:
         # add bos and eos tokens to each input_ids
         input_ids = [[self.tokenizer.cls_token_id] + x + [self.tokenizer.eos_token_id] for x in input_ids]
         # pad input_ids to max_length
-        input_ids[-1] = [input_ids[-1] + [self.tokenizer.pad_token_id] * (self.max_length - len(input_ids[-1]))]
+        input_ids[-1] = input_ids[-1] + [self.tokenizer.pad_token_id] * (self.max_length - len(input_ids[-1]))
         return torch.tensor(input_ids)
 
     def prepare_attention_mask(self, input_ids: torch.Tensor) -> torch.Tensor:
         rows, columns = input_ids.shape
         attention_mask = torch.ones((rows-1, columns))
-        last_mask = torch.tensor([1 for id in input_ids[-1, :] if id != self.tokenizer.pad_token_id])
+        last_mask = torch.tensor([[1 if id != self.tokenizer.pad_token_id else 0 for id in input_ids[-1, :]]])
         attention_mask = torch.concat((attention_mask, last_mask), dim=0)
         return attention_mask
 
@@ -40,8 +40,8 @@ class Transformer:
             # set inputs to device
             model_inputs = {k: v.to(self.model.device) for k, v in model_inputs.items()}
             # forward pass
-            outputs = self.model(**model_inputs)
-            outputs = torch.sigmoid(outputs)
+            outputs = self.model(**model_inputs).logits
+            outputs = torch.sigmoid(outputs).cpu()
         return outputs
 
 

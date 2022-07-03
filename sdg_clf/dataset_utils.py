@@ -9,7 +9,7 @@ import torch
 from .utils import get_tokenizer
 
 
-def remove_with_regex(sample: dict, pattern: re.Pattern = None, textname: str = "text"):
+def remove_with_regex(sample: dict, pattern: re.Pattern = None):
     """
     Deletes every match with the "pattern".
     Sample must have a 'text' feature.
@@ -24,7 +24,7 @@ def remove_with_regex(sample: dict, pattern: re.Pattern = None, textname: str = 
         sample_processed: sample with all regex matches removed
     """
 
-    sample[textname] = pattern.subn("", sample[textname])[0]
+    sample["text"] = pattern.subn("", sample["text"])[0]
     return sample
 
 
@@ -42,27 +42,22 @@ def preprocess_sample(
     Returns:
         dict: the preprocessed sample
     """
-    if tweet:
-        textname = 'text'
-    else:
-        textname = 'Abstract'
-
-    sample[textname] = sample[textname].lower()
+    sample["text"] = sample["text"].lower()
 
     # remove labels from the tweet
     sdg_prog1 = re.compile(r"#(?:sdg)s?(\s+)?(\d+)?")
-    sample = remove_with_regex(sample, pattern=sdg_prog1, textname=textname)
+    sample = remove_with_regex(sample, pattern=sdg_prog1)
     sdg_prog2 = re.compile(r"(?:sdg)s?(\s?)(\d+)?")
-    sample = remove_with_regex(sample, pattern=sdg_prog2, textname=textname)
+    sample = remove_with_regex(sample, pattern=sdg_prog2)
     sdg_prog3 = re.compile(r"(sustainable development goals?\s?)(\d+)?")
-    sample = remove_with_regex(sample, pattern=sdg_prog3, textname=textname)
+    sample = remove_with_regex(sample, pattern=sdg_prog3)
     sdg_prog4 = re.compile(r"© \d\d(\d?)\d")
-    sample = remove_with_regex(sample, pattern=sdg_prog4, textname=textname)
+    sample = remove_with_regex(sample, pattern=sdg_prog4)
     sdg_prog5 = re.compile(r"elsevier\s+Ltd")
-    sample = remove_with_regex(sample, pattern=sdg_prog5, textname=textname)
+    sample = remove_with_regex(sample, pattern=sdg_prog5)
 
     # remove extra whitespace
-    sample[textname] = " ".join(sample[textname].split())
+    sample["text"] = " ".join(sample["text"].split())
 
     # create a label vector (only applicable for tweets)
     label_name = "sdg"
@@ -96,11 +91,10 @@ def preprocess_dataset(
     # Set the encoding to latin to be able to read special characters such as ñ
     df = pd.read_csv(file, encoding="latin", nrows=nrows)
 
-    if tweet:
-        textname = 'text'
-    else:
-        textname = 'Abstract'
-    df = df.drop_duplicates(textname)
+    if not tweet:
+        df = df.drop(columns=["text"])
+        df.rename(columns={"Abstract": "text"}, inplace=True)
+    df = df.drop_duplicates("text")
     ds = datasets.Dataset.from_pandas(df)
     if not multi_label:
         ds = ds.filter(lambda sample: sample["nclasses"] == 1)
@@ -128,7 +122,6 @@ def preprocess_dataset(
                 "Author.Keywords",
                 "Index.Keywords",
                 "EID",
-                "text",
                 "__index_level_0__"
             ] + [f"sdg{i}" for i in range(1, 18)]
         )
@@ -182,9 +175,9 @@ def create_base_dataset(tweet: bool = True, nrows: int = None):
     path_data = "data"
     path = os.path.join(path_data, "raw")
     if tweet:
-        path = os.path.join(path, "allSDGtweets.csv")
+        path = os.path.join(path, "twitter.csv")
     else:
-        path = os.path.join(path, "scopus_ready_to_use.csv")
+        path = os.path.join(path, "scopus.csv")
 
     ds = preprocess_dataset(file=path, nrows=nrows, tweet=tweet)
     ds_dict = split_dataset(ds, tweet=tweet)
@@ -214,21 +207,19 @@ def tokenize_dataset(tokenizer: transformers.PreTrainedTokenizer, tweet: bool = 
     path_data = "data/processed"
     if tweet:
         ds_dict = datasets.load_from_disk(os.path.join(path_data, "twitter/base"))
-        textname = "text"
     else:
         ds_dict = datasets.load_from_disk(os.path.join(path_data, "scopus/base"))
-        textname = "Abstract"
 
     for split in ds_dict.keys():
         if tweet:
             ds_dict[split] = ds_dict[split].map(
-                lambda samples: tokenizer(samples[textname], padding="max_length", max_length=max_length,
+                lambda samples: tokenizer(samples["text"], padding="max_length", max_length=max_length,
                                           truncation=True, return_token_type_ids=False), batched=True, num_proc=1)
         else:
             ds_dict[split] = ds_dict[split].map(
-                lambda samples: tokenizer(samples[textname], add_special_tokens=False, truncation=False,
+                lambda samples: tokenizer(samples["text"], add_special_tokens=False, truncation=False,
                                           return_attention_mask=False, return_token_type_ids=False), num_proc=1)
-        ds_dict[split] = ds_dict[split].remove_columns([textname, "nclasses", "label"])
+        ds_dict[split] = ds_dict[split].remove_columns(["text", "nclasses", "label"])
 
     return ds_dict
 

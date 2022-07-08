@@ -363,6 +363,10 @@ def get_dataloader(split: str, tokenizer_type, batch_size: int = 20, tweet: bool
     return dl
 
 
+def load_preprocessed_dataset(dataset_name: str, split: str) -> datasets.Dataset:
+    return datasets.load_from_disk(f"data/processed/{dataset_name}/base")[split]
+
+
 if __name__ == "__main__":
     ds_dict_tweets = get_dataset("roberta-base")
     ds_dict_scopus = get_dataset("roberta-base", tweet=False)

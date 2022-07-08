@@ -7,7 +7,7 @@ from typing import Union
 import datasets
 import requests
 import torch
-from tqdm import tqdm
+import tqdm
 import datasets
 import torchmetrics
 
@@ -15,6 +15,8 @@ from .dataset_utils import create_base_dataset, get_dataloader, get_tokenizer
 from .model import load_model
 from .osdg_ip import ip1
 from .utils import load_pickle, save_pickle, prepare_long_text_input
+import sdg_clf
+from sdg_clf import utils
 
 
 # predicts the SDG classification for a given text by choosing a method of sdg_clf, aurora, or osdg
@@ -106,7 +108,25 @@ def get_optimal_threshold(predictions: list[torch.Tensor], labels: torch.Tensor)
     best_threshold = best_threshold.item()
     best_f1 = best_f1.item()
 
-    return (best_threshold, best_f1)
+    return best_threshold, best_f1
+
+
+def predict_dataset(dataset: datasets.Dataset, method: str, model_weight: str = None, model_type: str = None,
+                    ):
+    predictions = []
+    if method == "sdg_clf":
+        tokenizer = utils.get_tokenizer(model_type)
+        model = sdg_clf.model.load_model(model_weight + ".pt", model_type)
+        transformer = base.Transformer(model, tokenizer)
+        for text in tqdm.tqdm(dataset["text"]):
+            pred = transformer.predict(text)
+            predictions.append(pred)
+    elif method == "osdg":
+        for text in tqdm.tqdm(dataset["text"]):
+            pred = predict_osdg(text)
+            predictions.append(pred)
+    return predictions
+
 
 
 def combine_predictions(predictions: list[torch.tensor]) -> torch.tensor:

@@ -1,5 +1,6 @@
 import torch
 import transformers
+from sdg_clf import utils
 
 
 # transformer class with a model and a tokenizer
@@ -27,18 +28,33 @@ class Transformer:
         attention_mask = torch.concat((attention_mask, last_mask), dim=0)
         return attention_mask
 
-    def prepare_model_inputs(self, text: str) -> dict:
+    def prepare_model_inputs(self, text: str) -> dict[str, torch.Tensor]:
         input_ids = self.prepare_input_ids(text)
         attention_mask = self.prepare_attention_mask(input_ids)
         return {"input_ids": input_ids, "attention_mask": attention_mask}
 
-    def predict(self, text: str) -> torch.tensor:
+    def predict_sample_no_threshold(self, text: str) -> torch.Tensor:
+        """
+        Predict the sample with the model and return the probabilities of each class.
+
+        The text is split into chunks of 260 tokens.
+        There can therefore be several chunks.
+        A prediction is made on each chunk and the sigmoid activation function applied to each.
+        The output is of shape (n_chunks, 17)
+
+        Args:
+            text: the text to predict on
+
+        Returns:
+            predictions for each chunk
+
+        """
         # get model inputs
         model_inputs = self.prepare_model_inputs(text)
         # get predictions
         with torch.no_grad():
             # set inputs to device
-            model_inputs = {k: v.to(self.model.device) for k, v in model_inputs.items()}
+            model_inputs = utils.move_to(model_inputs, self.device)
             # forward pass
             outputs = self.model(**model_inputs).logits
             outputs = torch.sigmoid(outputs).cpu()

@@ -1,12 +1,12 @@
+import os
+import pickle
 import random
+from typing import Union
 
-import torchmetrics
-import transformers
 import numpy as np
 import torch
-import os
-from typing import Union
-import pickle
+import torchmetrics
+import transformers
 
 
 def seed_everything(seed_value: int):
@@ -25,7 +25,6 @@ def seed_everything(seed_value: int):
         torch.cuda.manual_seed_all(seed_value)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = True
-
 
 
 def get_tokenizer(tokenizer_type: str):
@@ -113,7 +112,8 @@ def get_metrics(threshold, multilabel=False, num_classes=17):
     metrics = {
         "accuracy": {
             "goal": "maximize",
-            "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True, multiclass=not multilabel),
+            "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True,
+                                            multiclass=not multilabel),
         },
         "precision": {
             "goal": "maximize",
@@ -131,14 +131,18 @@ def get_metrics(threshold, multilabel=False, num_classes=17):
     }
     return metrics
 
+
 def load_pickle(path: str):
     with open(path, "rb") as f:
         contents = pickle.load(f)
     return contents
 
+
 def save_pickle(path: str, obj: object):
     with open(path, "wb") as f:
         pickle.dump(obj, f)
+
+
 def get_next_number(dir_path: str) -> int:
     """
     Get the next number in the directory.
@@ -156,3 +160,20 @@ def get_next_number(dir_path: str) -> int:
         file_names = [os.path.splitext(f)[0] for f in files if not f.startswith(".")]
         file_numbers = [int(name.split("_")[-1]) for name in file_names if "_" in name]
         return max(file_numbers) + 1
+
+
+def move_to(obj: Union[torch.Tensor, dict, list], device: str):
+    if torch.is_tensor(obj):
+        return obj.to(device)
+    elif isinstance(obj, dict):
+        res = {}
+        for k, v in obj.items():
+            res[k] = move_to(v, device)
+        return res
+    elif isinstance(obj, list):
+        res = []
+        for v in obj:
+            res.append(move_to(v, device))
+        return res
+    else:
+        raise TypeError("Invalid type for move_to")

@@ -1,37 +1,94 @@
 import ast
 import os
-from .aurora_mbert import create_aurora_predictions
-
-from sdg_clf import base
 from typing import Union
+
 import datasets
 import requests
 import torch
-import tqdm
-import datasets
 import torchmetrics
+import tqdm
 
-from .dataset_utils import create_base_dataset, get_dataloader, get_tokenizer
-from .model import load_model
-from .osdg_ip import ip1
-from .utils import load_pickle, save_pickle, prepare_long_text_input
 import sdg_clf
+from sdg_clf import base
 from sdg_clf import utils
+from sdg_clf.dataset_utils import create_base_dataset, get_dataloader, get_tokenizer
+from sdg_clf.model import load_model
+from sdg_clf import osdg_ip
+from sdg_clf.utils import load_pickle, save_pickle, prepare_long_text_input
 
 
 # predicts the SDG classification for a given text by choosing a method of sdg_clf, aurora, or osdg
-def predict(text: str, method: str = "sdg_clf", transformers: Union[base.Transformer, list[base.Transformer]] = None,
-            threshold: float = 0.5):
-    if method == "sdg_clf":
-        prediction = predict_sdg_clf(text, transformers=transformers, threshold=threshold)
-    elif method == "osdg":
-        prediction = predict_osdg(text)
-    elif method == "aurora":
-        prediction = predict_aurora(text)
-    return prediction
+# def predict(text: str, method: str = "sdg_clf", transformers: Union[base.Transformer, list[base.Transformer]] = None,
+#             threshold: float = 0.5):
+#     if method == "sdg_clf":
+#         prediction = predict_sdg_clf(text, transformers=transformers, threshold=threshold)
+#     elif method == "osdg":
+#         prediction = predict_osdg(text)
+#     elif method == "aurora":
+#         prediction = predict_sample_aurora(text)
+#     return prediction
 
 
-def predict_aurora(text: str):
+def predict_sample_osdg(text: str) -> Union[torch.Tensor, None]:
+    """
+    Predict the SDG classification for a given text using the OSDG server.
+    Args:
+        text: the text to predict on
+
+    Returns:
+        the prediction from the server as a tensor
+
+    """
+    osdg_prediction = request_osdg_prediction(text)
+    if "ERROR" in osdg_prediction:
+        print("OSDG unable to predict")
+        print("The following error message was received:")
+        print(f"\t {osdg_prediction}")
+        print()
+        return None
+    else:
+        prediction_tensor = process_osdg_prediction(osdg_prediction)
+
+    return prediction_tensor
+
+
+def request_osdg_prediction(text: str, ip: str = osdg_ip.ip1) -> str:
+    """
+    Requests the prediction from the OSDG server.
+    Args:
+        text: text to predict on
+        ip: ip address of the server
+
+    Returns:
+        unprocessed prediction from the server as a string
+
+    """
+    data = {"query": text}
+    osdg_prediction = requests.post(ip, data=data)
+    osdg_prediction = osdg_prediction.text
+    return osdg_prediction
+
+
+def process_osdg_prediction(osdg_prediction: str) -> torch.Tensor:
+    """
+    Processes the prediction from the OSDG server.
+    Args:
+        osdg_prediction: unprocessed prediction from the server as a string
+
+    Returns:
+        prediction from the server as a tensor
+
+    """
+    osdg_prediction = ast.literal_eval(osdg_prediction)
+    prediction_list = [0] * 17
+    for pred in osdg_prediction:
+        sdg_pred = int(pred[0][4:]) - 1
+        prediction_list[sdg_pred] = 1
+    prediction_tensor = torch.tensor(prediction_list)
+    return prediction_tensor
+
+
+def predict_sample_aurora(text: str):
     pass
 
 
@@ -128,7 +185,6 @@ def predict_dataset(dataset: datasets.Dataset, method: str, model_weight: str = 
     return predictions
 
 
-
 def combine_predictions(predictions: list[torch.tensor]) -> torch.tensor:
     longest_prediction = max(predictions, key=lambda x: x.shape[0])
     prediction_counter = torch.zeros(longest_prediction.shape)
@@ -138,30 +194,6 @@ def combine_predictions(predictions: list[torch.tensor]) -> torch.tensor:
         total_prediction[:prediction.shape[0]] += prediction
     average_predictions = total_prediction / prediction_counter
     return average_predictions
-
-
-def predict_osdg(text: str) -> torch.Tensor:
-    osdg_prediction = request_osdg_prediction(text)
-    prediction_tensor = process_osdg_prediction(osdg_prediction)
-    return prediction_tensor
-
-
-# get prediction from the osdg api
-def request_osdg_prediction(text: str, ip: str = ip1):
-    data = {"query": text}
-    osdg_prediction = requests.post(ip, data=data)
-    osdg_prediction = osdg_prediction.text
-    return osdg_prediction
-
-
-def process_osdg_prediction(osdg_prediction: str) -> torch.Tensor:
-    osdg_prediction = ast.literal_eval(osdg_prediction)
-    prediction_list = [0] * 17
-    for pred in osdg_prediction:
-        sdg_pred = int(pred[0][4:]) - 1
-        prediction_list[sdg_pred] = 1
-    prediction_tensor = torch.tensor(prediction_list)
-    return prediction_tensor
 
 
 def get_predictions(method: str = "sdg_clf", tweet: bool = False, split: str = "test", model_type: str = None,

@@ -56,23 +56,23 @@ class Model(nn.Module):
         return out
 
 
-def get_model(
-        num_labels: int = 17,
-        pretrained_path: str = None,
-        n_layers: int = 1,
-        hidden_size: int = 768,
-):
-    """Function calling the from_pretrained method on Huggingface hosted pretrained models
-
-    Args:
-        num_labels (int, optional): The number of labels to be classified. Defaults to 17.
-        pretrained_path (str, optional): String that mentions the model id to be retrieved. Defaults to None.
-
-    Returns:
-        _type_: _description_
-    """
-    model = Model(path=pretrained_path, n_layers=n_layers, n_labels=num_labels, hidden_size=hidden_size)
-    return model
+# def get_model(
+#         num_labels: int = 17,
+#         pretrained_path: str = None,
+#         n_layers: int = 1,
+#         hidden_size: int = 768,
+# ):
+#     """Function calling the from_pretrained method on Huggingface hosted pretrained models
+#
+#     Args:
+#         num_labels (int, optional): The number of labels to be classified. Defaults to 17.
+#         pretrained_path (str, optional): String that mentions the model id to be retrieved. Defaults to None.
+#
+#     Returns:
+#         _type_: _description_
+#     """
+#     model = Model(path=pretrained_path, n_layers=n_layers, n_labels=num_labels, hidden_size=hidden_size)
+#     return model
 
 
 def load_model(weights: str, model_type: str):

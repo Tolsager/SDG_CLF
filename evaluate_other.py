@@ -45,7 +45,7 @@ def main(method: str, dataset_name: str, split: str, save_predictions: bool = Tr
 
     labels = dataset_utils.get_labels_tensor(df)
 
-    metrics = utils.get_metrics(multilabel=True)
+    metrics = utils.get_metrics(0.5, multilabel=True)
     utils.update_metrics(metrics, {"label": labels, "prediction": predictions})
     metrics_values = utils.compute_metrics(metrics)
     print(metrics_values)
@@ -55,13 +55,9 @@ if __name__ == "__main__":
     # set up argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--method", type=str, default="sdg_clf")
-    parser.add_argument("--dataset", type=str, default="scopus")
+    parser.add_argument("--dataset_name", type=str, default="scopus")
     parser.add_argument("--split", type=str, default="train")
-    parser.add_argument("--model_weights", type=str, nargs="+")
-    parser.add_argument("--model_types", type=str, nargs="+")
     parser.add_argument("--save_predictions", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
-    parser.add_argument("--threshold", type=float, default=0.5)
     args = parser.parse_args()
-    main(args.dataset, split=args.split, model_weights=args.model_weights, model_types=args.model_types,
-         save_predictions=args.save_predictions, overwrite=args.overwrite, method=args.method, threshold=args.threshold)
+    main(args.dataset_name, split=args.split, save_predictions=args.save_predictions, overwrite=args.overwrite)

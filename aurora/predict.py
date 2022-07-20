@@ -164,7 +164,7 @@ def create_aurora_predictions(texts: list[str]):
     inputs=convert_to_tensor(padded_ids)
     predictions=models_predict(directory="pretrained_models/mbert", inputs=inputs, attention_masks=masks)
     predictions_df=predictions_dict_to_df(predictions)
-    predictions_list =
+    # predictions_list =
     predictions_df.to_csv(f"{SAVE_PREDICTIONS_TO}/predictions_test_fixed.csv", index=False)
 
 

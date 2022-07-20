@@ -3,29 +3,44 @@ import os
 
 import torch
 
-import sdg_clf
 from sdg_clf import utils, evaluation, dataset_utils
 
 
-def main(dataset_name: str, split: str, model_weights: list[str] = None, model_types: list[str] = None,
-         save_predictions: bool = False, overwrite: bool = False, threshold: float = 0.5, method: str = "sdg_clf"):
+def get_prediction_paths(method: str, dataset_name: str, split: str, model_weights: list[str] = None) -> list[str]:
     if method == "sdg_clf":
         prediction_paths = [f"predictions/{dataset_name}/{split}/{model_weights[i]}.pkl" for i in
                             range(len(model_weights))]
     else:
         prediction_paths = [f"predictions/{dataset_name}/{split}/{method}.pkl"]
+    return prediction_paths
 
-    # load predictions that already exists
+
+def load_predictions(prediction_paths: list[str]) -> list[torch.Tensor]:
     predictions = []
     for i in range(len(prediction_paths)):
-        if os.path.exists(prediction_paths[i]) and not overwrite:
+        if os.path.exists(prediction_paths[i]):
             predictions.append(utils.load_pickle(prediction_paths[i]))
         else:
             predictions.append(None)
-    dataset = dataset_utils.load_preprocessed_dataset(dataset_name, split)
+    return predictions
+
+
+def main(dataset_name: str, split: str, model_weights: list[str] = None, model_types: list[str] = None,
+         save_predictions: bool = False, overwrite: bool = False, threshold: float = 0.5, method: str = "sdg_clf"):
+
+    # load predictions that already exists if overwrite is False
+    prediction_paths = get_prediction_paths(method, dataset_name, split, model_weights)
+    if not overwrite:
+        predictions = load_predictions(prediction_paths)
+    else:
+        predictions = [None] * n_models
+    n_models = len(model_types)
+
+    # load dataframe
+    df = dataset_utils.get_processed_df(dataset_name, split)
 
     # create predictions if any are missing
-    if None in predictions or overwrite:
+    if None in predictions:
         for i in range(len(predictions)):
             if predictions[i] is None:
                 if method == "sdg_clf":

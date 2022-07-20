@@ -60,4 +60,17 @@ class Transformer:
             outputs = torch.sigmoid(outputs).cpu()
         return outputs
 
+    def predict_multiple_samples_no_threshold(self, samples: list[str]) -> list[torch.Tensor]:
+        """
+        Predict each sample without threshold
+        Args:
+            samples: texts to predict on
+
+        Returns:
+            predictions for each sample
+
+        """
+        return [self.predict_sample_no_threshold(text) for text in samples]
+
+
 

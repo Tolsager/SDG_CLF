@@ -126,17 +126,8 @@ def predictions_dict_to_df(predictions_dictionary):
     return predictions_df
 
 
-def create_aurora_predictions(tweet: bool = False, split: str = "test", n_samples: int = 1400):
-    if tweet:
-        name_ds = "twitter"
-        name_text = "text"
-    else:
-        name_ds = "scopus"
-        name_text = "Abstract"
-    ds_dict = datasets.load_from_disk(f"data/processed/{name_ds}/base")
-    ds = ds_dict[split]
-    texts = ds[name_text][:n_samples]
-    abstracts=texts
+def create_aurora_predictions(samples: list[str]):
+    abstracts=samples
     ids=abstracts_to_ids(abstracts)
     padded_ids=pad_ids(ids)
     masks=create_attention_masks(padded_ids)

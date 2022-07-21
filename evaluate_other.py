@@ -21,6 +21,7 @@ def load_predictions(prediction_path: str) -> Union[torch.Tensor, None]:
 
 
 def main(method: str, dataset_name: str, split: str, save_predictions: bool = True, overwrite: bool = False):
+    os.chdir(os.path.dirname(__file__))
     # load predictions that already exists if overwrite is False
     prediction_paths = get_prediction_path(method, dataset_name, split)
     if not overwrite:

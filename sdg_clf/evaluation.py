@@ -12,7 +12,7 @@ import sdg_clf
 from sdg_clf import base
 from sdg_clf import utils
 from sdg_clf.dataset_utils import create_base_dataset, get_dataloader, get_tokenizer
-from sdg_clf.model import load_model
+from sdg_clf.modelling import load_model
 from sdg_clf import osdg_ip
 from sdg_clf.utils import load_pickle, save_pickle, prepare_long_text_input
 from sdg_clf import aurora_mbert

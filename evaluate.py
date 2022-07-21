@@ -3,7 +3,7 @@ import os
 
 import torch
 
-from sdg_clf import utils, evaluation, dataset_utils, model, base
+from sdg_clf import utils, evaluation, dataset_utils, modelling, base
 
 
 # TODO: move the following two functions to another file
@@ -27,6 +27,7 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
          save_predictions: bool = False, overwrite: bool = False, threshold: float = 0.5):
     # load predictions that already exist if overwrite is False
     # TODO: create a get_predictions function that does this
+    os.chdir(os.path.dirname(__file__))
     n_models = len(model_types)
     prediction_paths = get_prediction_paths(dataset_name, split, model_weights)
     if not overwrite:
@@ -42,7 +43,7 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
     for i in range(len(predictions)):
         if predictions[i] is None:
             # load the model
-            transformer_model = model.load_model(model_weights[i], model_types[i])
+            transformer_model = modelling.load_model(model_types[i], model_weights[i])
             tokenizer = utils.get_tokenizer(model_types[i])
             transformer = base.Transformer(transformer_model, tokenizer)
             predictions[i] = transformer.predict_multiple_samples_no_threshold(samples)

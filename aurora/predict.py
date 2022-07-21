@@ -119,7 +119,7 @@ def models_predict(directory, inputs, attention_masks, float_to_percent=False):
     models=glob.glob(f"{directory}*.h5")
     predictions_dict={}
     for _ in models:
-        model=tf.keras.models.load_model(_)
+        model= tf.keras.models.load_model(), _
         #predictions=model.predict_step([inputs, attention_masks])
         predictions = model.predict([inputs, attention_masks])
         predictions=[float(_) for _ in predictions]

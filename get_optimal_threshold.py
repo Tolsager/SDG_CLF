@@ -3,7 +3,7 @@ import os
 
 import torch
 
-from sdg_clf import utils, evaluation, dataset_utils, model, base
+from sdg_clf import utils, evaluation, dataset_utils, modelling, base
 
 
 def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str] = None) -> list[str]:
@@ -42,7 +42,7 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
     for i in range(len(predictions)):
         if predictions[i] is None:
             # load the model
-            transformer_model = model.load_model(model_weights[i], model_types[i])
+            transformer_model = modelling.load_model(model_types[i], model_weights[i])
             tokenizer = utils.get_tokenizer(model_types[i])
             transformer = base.Transformer(transformer_model, tokenizer)
             predictions[i] = transformer.predict_multiple_samples_no_threshold(samples)

@@ -108,25 +108,25 @@ def set_metrics_to_device(metrics):
         metrics[k]["metric"] = v["metric"].to("cuda")
 
 
-def get_metrics(threshold, multilabel=False, num_classes=17):
+def get_metrics(threshold=0.5, num_classes=17):
     metrics = {
         "accuracy": {
             "goal": "maximize",
             "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True,
-                                            multiclass=not multilabel),
+                                            multiclass=False),
         },
         "precision": {
             "goal": "maximize",
             "metric": torchmetrics.Precision(threshold=threshold, num_classes=num_classes,
-                                             multiclass=not multilabel),
+                                             multiclass=False),
         },
         "recall": {
             "goal": "maximize",
-            "metric": torchmetrics.Recall(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
+            "metric": torchmetrics.Recall(threshold=threshold, num_classes=num_classes, multiclass=False),
         },
         "f1": {
             "goal": "maximize",
-            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
+            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=num_classes, multiclass=False),
         },
     }
     return metrics

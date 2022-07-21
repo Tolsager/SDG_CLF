@@ -45,7 +45,7 @@ def main(method: str, dataset_name: str, split: str, save_predictions: bool = Tr
 
     labels = dataset_utils.get_labels_tensor(df)
 
-    metrics = utils.get_metrics(0.5, multilabel=True)
+    metrics = utils.get_metrics(0.5)
     utils.update_metrics(metrics, {"label": labels, "prediction": predictions})
     metrics_values = utils.compute_metrics(metrics)
     print(metrics_values)

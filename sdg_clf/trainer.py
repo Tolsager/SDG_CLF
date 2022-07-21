@@ -475,7 +475,7 @@ class SDGTrainer(Trainer):
                 prediction = self.long_text_step(model_outputs)
                 predictions.append(prediction)
         for threshold in np.linspace(0, 1, 101):
-            self.metrics = get_metrics(threshold=threshold, multilabel=True)
+            self.metrics = get_metrics(threshold=threshold)
             self.set_metrics_to_device()
             self.reset_metrics()
             self.update_metrics({"label": torch.stack(labels, dim=0).to(self.device),

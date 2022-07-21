@@ -19,27 +19,28 @@ import torchmetrics
 from sdg_clf import utils
 from api_key import key
 from sdg_clf.dataset_utils import get_dataset
+import dataclasses
 
 
+@dataclasses.dataclass
+class TrainingParameters:
+    learning_rate: float = 3e-5
+    batch_size: int = 32
+    epochs: int = 2
+    weight_decay: float = 1e-2
+
+    as_dict = dataclasses.asdict()
 
 
 def main(
-    multi_label: bool = False,
-    call_tqdm: bool = True,
-    sample_data: bool = False,
-    metrics: dict = None,
-    seed: int = 0,
-    model_type: str = "roberta-base",
-    log: bool = True,
-    save_model: bool = False,
-    model: torch.nn.Module = False,
-    save_metric: str = "f1",
-    hypers: dict = {"learning_rate": 3e-5,
-                    "batch_size": 64,
-                    "epochs": 2,
-                    "weight_decay": 1e-2},
-    tags: list = None,
-    notes: str = "Evaluating baseline model",
+        call_tqdm: bool = True,
+        seed: int = 0,
+        model_type: str = "roberta-base",
+        log: bool = True,
+        save_model: bool = True,
+        training_parameters: TrainingParameters = TrainingParameters(),
+        tags: list = None,
+        notes: str = "Evaluating baseline model",
 ):
     """main() completes multi_label learning loop for one ROBERTA model using one model.
     Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
@@ -62,37 +63,23 @@ def main(
         os.environ["WANDB_MODE"] = "offline"
     # Setup W and B project log
     os.environ["WANDB_API_KEY"] = key
-    run = wandb.init(project="sdg_clf", entity="pydqn", config=hypers, tags=tags, notes=notes)
+    run = wandb.init(project="sdg_clf", config=training_parameters.as_dict, tags=tags, notes=notes)
 
-    os.chdir(os.path.dirname(__file__))
-    utils.seed_everything(seed)
     # Setup correct directory and seed
-    save_path = "data/processed"
-    save_path += f"/{model_type}"
+    # os.chdir(os.path.dirname(__file__))
+    utils.seed_everything(seed)
+    model_path = "pretrained_models/" + model_type
 
-    # get the dataset dict with splits
-    ds_dict = get_dataset(tokenizer_type=model_type, sample_data=sample_data)
+    if not os.path.exists(model_path):
+        model = transformers.AutoModelForSequenceClassification.from_pretrained(
+            model_type, num_labels=17
+        )
 
-    # convert the model input for every split to tensors
-    for ds in ds_dict.values():
-        ds.set_format("pt", columns=["input_ids", "attention_mask", "label"])
-    if not model:
-
-        # load model
-        model_path = "pretrained_models/" + model_type
-
-        if not os.path.exists(model_path):
-            model = transformers.AutoModelForSequenceClassification.from_pretrained(
-                model_type, num_labels=17
-            )
-
-            # I think hugggingface uses makedirs so the following line should be redundant but needs to be tested
-            # os.makedirs(model_path)
-            model.save_pretrained(model_path)
-        else:
-            model = transformers.AutoModelForSequenceClassification.from_pretrained(
-                model_path, num_labels=17
-            )
+        model.save_pretrained(model_path)
+    else:
+        model = transformers.AutoModelForSequenceClassification.from_pretrained(
+            model_path, num_labels=17
+        )
 
     # Set loss criterion for trainer
     if multi_label:
@@ -125,8 +112,8 @@ if __name__ == "__main__":
             "metric": torchmetrics.Accuracy(subset_accuracy=True, multiclass=not multilabel),
         },
         # "auroc": {
-            # "goal": "maximize",
-            # "metric": torchmetrics.AUROC(num_classes=17),
+        # "goal": "maximize",
+        # "metric": torchmetrics.AUROC(num_classes=17),
         # },
         "precision": {
             "goal": "maximize",
@@ -142,16 +129,20 @@ if __name__ == "__main__":
         },
     }
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--multilabel", help="boolean controlling whether the problem is multiclass or multilabel", action="store_true", default=False)
+    parser.add_argument("-m", "--multilabel",
+                        help="boolean controlling whether the problem is multiclass or multilabel", action="store_true",
+                        default=False)
     parser.add_argument("-b", "--batchsize", help="number of batches sent to model", type=int, default=8)
     parser.add_argument("-l", "--log", help="log results to weights and biases", action='store_true', default=False)
     parser.add_argument("-s", "--save", help="save models during training", action="store_true", default=False)
     parser.add_argument("-e", "--epochs", help="number of epochs to train model", type=int, default=2)
     parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
     parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
-    parser.add_argument("-n", "--n_layers", help="number of dense layers before classification head", type=int, default=0)
+    parser.add_argument("-n", "--n_layers", help="number of dense layers before classification head", type=int,
+                        default=0)
     parser.add_argument("-t", "--tags", help="tags for experiment run", nargs="+", default=None)
-    parser.add_argument("-nt", "--notes", help="notes for a specific experiment run", type=str, default="run with base parameters")
+    parser.add_argument("-nt", "--notes", help="notes for a specific experiment run", type=str,
+                        default="run with base parameters")
     parser.add_argument("-mt", "--model_type", help="specify model type to train", type=str, default="roberta-base")
     args = parser.parse_args()
     # main(
@@ -176,6 +167,6 @@ if __name__ == "__main__":
                 "epochs": args.epochs,
                 "weight_decay": args.weight_decay,
                 "proj_head_layers": args.n_layers},
-        tags = args.tags,
-        notes = args.notes,
+        tags=args.tags,
+        notes=args.notes,
     )

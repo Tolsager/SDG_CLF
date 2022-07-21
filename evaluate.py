@@ -6,6 +6,7 @@ import torch
 from sdg_clf import utils, evaluation, dataset_utils, model, base
 
 
+# TODO: move the following two functions to another file
 def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str] = None) -> list[str]:
     prediction_paths = [f"predictions/{dataset_name}/{split}/{model_weights[i]}.pkl" for i in
                         range(len(model_weights))]
@@ -25,6 +26,7 @@ def load_predictions(prediction_paths: list[str]) -> list[torch.Tensor]:
 def main(dataset_name: str, split: str, model_weights: list[str] = None, model_types: list[str] = None,
          save_predictions: bool = False, overwrite: bool = False, threshold: float = 0.5):
     # load predictions that already exist if overwrite is False
+    # TODO: create a get_predictions function that does this
     n_models = len(model_types)
     prediction_paths = get_prediction_paths(dataset_name, split, model_weights)
     if not overwrite:
@@ -50,11 +52,7 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
 
     # combine the predictions if an ensemble of models is used
     if len(predictions) > 1:
-        combined_predictions = []
-        for i in range(len(predictions[0])):
-            combined_predictions.append(
-                evaluation.combine_predictions([predictions[j][i] for j in range(len(predictions))]))
-        predictions = combined_predictions
+        predictions = evaluation.combine_multiple_predictions(predictions)
 
     # since all samples in the osdg dataset has a single label we always predict the one with the largest probability
     if dataset_name == "osdg":
@@ -66,13 +64,14 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
         predictions = new_predictions
     else:
         # threshold predictions
-        predictions = [k > threshold for k in predictions]
-        predictions = [torch.any(k, dim=0).int() for k in predictions]
+        predictions = evaluation.threshold_multiple_predictions(predictions, threshold)
+        # obtain predictions with the any strategy
+        predictions = evaluation.predict_multiple_strategy_any(predictions)
         predictions = torch.stack(predictions, dim=0)
 
     labels = dataset_utils.get_labels_tensor(df)
 
-    metrics = utils.get_metrics(threshold=threshold, multilabel=True)
+    metrics = utils.get_metrics(threshold=threshold)
 
     utils.update_metrics(metrics, {"label": labels, "prediction": predictions})
     metrics_values = utils.compute_metrics(metrics)
@@ -90,5 +89,5 @@ if __name__ == "__main__":
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--threshold", type=float, default=0.5)
     args = parser.parse_args()
-    main(args.dataset_banw, split=args.split, model_weights=args.model_weights, model_types=args.model_types,
+    main(args.dataset_name, split=args.split, model_weights=args.model_weights, model_types=args.model_types,
          save_predictions=args.save_predictions, overwrite=args.overwrite, threshold=args.threshold)

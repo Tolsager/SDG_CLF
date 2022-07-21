@@ -1,4 +1,6 @@
 import numpy as np
+import transformers
+import datasets
 
 from sdg_clf import dataset_utils
 import pandas as pd
@@ -6,21 +8,21 @@ import pytest
 import os
 
 
-def test_preprocess_scopus_df():
+def test_process_scopus_df():
     os.chdir("..")
-    df = dataset_utils.preprocess_scopus_df()
+    df = dataset_utils.process_scopus_df()
     assert len(df.columns) == 17 + 1
 
 
-def test_preprocess_twitter_df():
+def test_process_twitter_df():
     os.chdir("..")
-    df = dataset_utils.preprocess_twitter_df()
+    df = dataset_utils.process_twitter_df()
     assert len(df.columns) == 17 + 1
 
 
-def test_preprocess_osdg_df():
+def test_process_osdg_df():
     os.chdir("..")
-    df = dataset_utils.preprocess_twitter_df()
+    df = dataset_utils.process_twitter_df()
     assert len(df.columns) == 17 + 1
 
 
@@ -33,20 +35,20 @@ def test_remove_with_regex():
     assert text_clean == "1:  2: 3: "
 
 
-def test_preprocess_text():
+def test_process_text():
     text = "1: www.Google.com 2: #sdg1"
-    text_clean = dataset_utils.preprocess_text(text)
+    text_clean = dataset_utils.process_text(text)
     assert text_clean == "1:  2: "
 
 
-def test_preprocess_df():
+def test_process_df():
     os.chdir("..")
     dataset_name = "scopus"
-    df = dataset_utils.preprocess_df(dataset_name)
+    df = dataset_utils.process_df(dataset_name)
     assert len(df.columns) == 17 + 2
     with pytest.raises(ValueError):
         invalid_dataset_name = "invalid_dataset_name"
-        dataset_utils.preprocess_df(invalid_dataset_name)
+        dataset_utils.process_df(invalid_dataset_name)
 
 
 def test_get_split_indices():
@@ -144,3 +146,12 @@ def test_get_labels_tensor():
     df = pd.read_csv("data/processed/scopus/test.csv")
     labels = dataset_utils.get_labels_tensor(df)
     assert labels.shape == (len(df), 17)
+
+
+def test_process_dataset():
+    os.chdir("..")
+    df = pd.read_csv("data/processed/scopus/test.csv")
+    ds = datasets.Dataset.from_pandas(df)
+    tokenizer = transformers.AutoTokenizer.from_pretrained("albert-base-v2")
+    processed_ds = dataset_utils.process_dataset(ds, tokenizer)
+    assert set(processed_ds.format["columns"]) == {"input_ids", "attention_mask", "label"}

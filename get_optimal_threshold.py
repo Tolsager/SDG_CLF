@@ -1,70 +1,76 @@
 import argparse
 import os
 
-import datasets
-import pandas as pd
 import torch
-import tqdm
 
-import sdg_clf
-from sdg_clf import base
-from sdg_clf import evaluation
-from sdg_clf import utils
+from sdg_clf import utils, evaluation, dataset_utils, model, base
+
+
+def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str] = None) -> list[str]:
+    prediction_paths = [f"predictions/{dataset_name}/{split}/{model_weights[i]}.pkl" for i in
+                        range(len(model_weights))]
+    return prediction_paths
+
+
+def load_predictions(prediction_paths: list[str]) -> list[torch.Tensor]:
+    predictions = []
+    for i in range(len(prediction_paths)):
+        if os.path.exists(prediction_paths[i]):
+            predictions.append(utils.load_pickle(prediction_paths[i]))
+        else:
+            predictions.append(None)
+    return predictions
 
 
 def main(dataset_name: str, split: str, model_weights: list[str] = None, model_types: list[str] = None,
-         save_predictions: bool = False, overwrite: bool = False, ):
-    # load dataset from data/processed
-    dataset = datasets.load_from_disk(f"data/processed/{dataset_name}/base")[split]
-    prediction_paths = [f"predictions/{dataset_name}/{split}/{model_weights[i]}" + ".pkl" for i in
-                        range(len(model_weights))]
-    predictions = []
-    for i in range(len(model_weights)):
-        if os.path.exists(prediction_paths[i]) and not overwrite:
-            predictions.append(utils.load_pickle(prediction_paths[i]))
-        else:
+         save_predictions: bool = False, overwrite: bool = False, threshold: float = 0.5):
+    if dataset_name == "osdg":
+        raise ValueError("The OSDG dataset only has a single label for each sample so no threshold is used")
+    # load predictions that already exist if overwrite is False
+    n_models = len(model_types)
+    prediction_paths = get_prediction_paths(dataset_name, split, model_weights)
+    if not overwrite:
+        predictions = load_predictions(prediction_paths)
+    else:
+        predictions = [None] * n_models
+
+    # load dataframe
+    df = dataset_utils.get_processed_df(dataset_name, split)
+    samples = df["processed_text"].tolist()
+
+    # create predictions if any are missing
+    for i in range(len(predictions)):
+        if predictions[i] is None:
+            # load the model
+            transformer_model = model.load_model(model_weights[i], model_types[i])
             tokenizer = utils.get_tokenizer(model_types[i])
-            model = sdg_clf.model.load_model(model_weights[i] + ".pt", model_types[i])
-            transformer = base.Transformer(model, tokenizer)
-            current_predictions = []
-            for text in tqdm.tqdm(dataset["text"]):
-                pred = transformer.predict(text)
-                current_predictions.append(pred)
-            predictions.append(current_predictions)
+            transformer = base.Transformer(transformer_model, tokenizer)
+            predictions[i] = transformer.predict_multiple_samples_no_threshold(samples)
 
             if save_predictions:
-                prediction_dir = f"predictions/{dataset_name}/{split}"
-                os.makedirs(prediction_dir, exist_ok=True)
+                utils.save_pickle(prediction_paths[i], predictions[i])
 
-                path = f"{prediction_dir}/{model_weights[i]}.pkl"
-                utils.save_pickle(path, current_predictions)
+    # combine the predictions if an ensemble of models is used
+    if len(predictions) > 1:
+        predictions = evaluation.combine_multiple_predictions(predictions)
 
-    # get optimal threshold
-    labels = dataset["label"]
-    labels = torch.tensor(labels)
-    combined_predictions = []
-    for i in range(len(predictions[0])):
-        combined_predictions.append(evaluation.combine_predictions([predictions[j][i] for j in range(len(predictions))]))
-    optimal_threshold, best_f1_score = evaluation.get_optimal_threshold(combined_predictions, labels)
-    print(f"Optimal threshold: {round(optimal_threshold, 4)} with f1 score: {round(best_f1_score, 4)}")
-    df = pd.read_csv("optimal_thresholds.csv")
-    predictions_name = f"{dataset_name}_{split}"
-    for weight in model_weights:
-        predictions_name += f"_{weight}"
-    df = pd.concat(
-        (df, pd.DataFrame(
-            {"predictions_name": [predictions_name], "threshold": [round(optimal_threshold, 4)]})))
-    df.to_csv("optimal_thresholds.csv", index=False)
+    labels = dataset_utils.get_labels_tensor(df)
+
+    best_threshold, best_f1 = evaluation.get_optimal_threshold(predictions, labels)
+    print(f"Best threshold: {best_threshold}")
+    print(f"Best F1: {best_f1}")
 
 
 if __name__ == "__main__":
     # set up argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="scopus")
+    parser.add_argument("--dataset_name", type=str, default="scopus")
     parser.add_argument("--split", type=str, default="train")
     parser.add_argument("--model_weights", type=str, nargs="+")
     parser.add_argument("--model_types", type=str, nargs="+")
     parser.add_argument("--save_predictions", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--threshold", type=float, default=0.5)
     args = parser.parse_args()
-    main(args.dataset, args.split, args.model_weights, args.model_types, args.save_predictions, args.overwrite)
+    main(args.dataset_name, split=args.split, model_weights=args.model_weights, model_types=args.model_types,
+         save_predictions=args.save_predictions, overwrite=args.overwrite, threshold=args.threshold)

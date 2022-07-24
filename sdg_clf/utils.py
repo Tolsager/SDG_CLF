@@ -177,3 +177,30 @@ def move_to(obj: Union[torch.Tensor, dict, list], device: str):
         return res
     else:
         raise TypeError("Invalid type for move_to")
+
+
+def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str] = None, method: str = None) -> Union[
+    list[str], str]:
+    if method == "osdg" or method == "aurora":
+        prediction_paths = f"predictions/{dataset_name}/{split}/{method}.pkl"
+    else:
+        prediction_paths = [f"predictions/{dataset_name}/{split}/{model_weights[i]}.pkl" for i in
+                            range(len(model_weights))]
+    return prediction_paths
+
+
+def load_predictions(prediction_paths: Union[list[str], str]) -> Union[list[torch.Tensor], torch.Tensor, None]:
+    if isinstance(prediction_paths, str):
+        if os.path.exists(prediction_paths):
+            return load_pickle(prediction_paths)
+        else:
+            return None
+
+    # otherwise it's a list of paths and the method is sdg_clf
+    predictions = []
+    for i in range(len(prediction_paths)):
+        if os.path.exists(prediction_paths[i]):
+            predictions.append(load_pickle(prediction_paths[i]))
+        else:
+            predictions.append(None)
+    return predictions

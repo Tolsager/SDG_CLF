@@ -1,6 +1,6 @@
 import torch
 import transformers
-from sdg_clf import utils
+from sdg_clf import utils, modelling
 
 
 # transformer class with a model and a tokenizer
@@ -23,7 +23,7 @@ class Transformer:
 
     def prepare_attention_mask(self, input_ids: torch.Tensor) -> torch.Tensor:
         rows, columns = input_ids.shape
-        attention_mask = torch.ones((rows-1, columns))
+        attention_mask = torch.ones((rows - 1, columns))
         last_mask = torch.tensor([[1 if id != self.tokenizer.pad_token_id else 0 for id in input_ids[-1, :]]])
         attention_mask = torch.concat((attention_mask, last_mask), dim=0)
         return attention_mask
@@ -73,4 +73,15 @@ class Transformer:
         return [self.predict_sample_no_threshold(text) for text in samples]
 
 
+def get_transformer(model_type: str, model_weights: str) -> Transformer:
+    # get model
+    model = modelling.get_model(model_type, model_weights)
+    # get tokenizer
+    tokenizer = utils.get_tokenizer(model_type)
+    # create transformer
+    transformer = Transformer(model, tokenizer)
+    return transformer
 
+
+def get_multiple_transformers(model_types: list[str], model_weights: list[str]) -> list[Transformer]:
+    return [get_transformer(model_type, model_weight) for model_type, model_weight in zip(model_types, model_weights)]

@@ -1,21 +1,11 @@
 import ast
-import os
 from typing import Union
 
-import datasets
 import requests
 import torch
 import torchmetrics
-import tqdm
 
-import sdg_clf
-from sdg_clf import base
-from sdg_clf import utils
-from sdg_clf.dataset_utils import create_base_dataset, get_dataloader, get_tokenizer
-from sdg_clf.modelling import load_model
-from sdg_clf import osdg_ip
-from sdg_clf.utils import load_pickle, save_pickle, prepare_long_text_input
-from sdg_clf import aurora_mbert
+from sdg_clf import base, utils, dataset_utils, osdg_ip, aurora_mbert, modelling
 
 
 def predict_sample_osdg(text: str, ip: str = osdg_ip.ip1) -> Union[torch.Tensor, None]:
@@ -141,6 +131,58 @@ def predict_strategy_any(threshold_predictions: torch.Tensor) -> torch.Tensor:
 
 def predict_multiple_strategy_any(predictions: list[torch.Tensor]) -> list[torch.Tensor]:
     predictions = [predict_strategy_any(pred) for pred in predictions]
+    return predictions
+
+
+def get_predictions_sdg_clf(dataset_name: str, split: str, model_weights: list[str], model_types: list[str],
+                            save_predictions: bool = True, overwrite: bool = False) -> list[list[torch.Tensor]]:
+    # the number of models in the ensemble
+    n_models = len(model_types)
+    prediction_paths = utils.get_prediction_paths(dataset_name, split, model_weights)
+    if not overwrite:
+        predictions = utils.load_predictions(prediction_paths)
+    else:
+        predictions = [None] * n_models
+
+    # load dataframe
+    df = dataset_utils.get_processed_df(dataset_name, split)
+    samples = df["processed_text"].tolist()
+
+    # create predictions if any are missing
+    for i in range(len(predictions)):
+        if predictions[i] is None:
+            # load the model
+            transformer_model = modelling.load_model(model_types[i], model_weights[i])
+            tokenizer = utils.get_tokenizer(model_types[i])
+            transformer = base.Transformer(transformer_model, tokenizer)
+            predictions[i] = transformer.predict_multiple_samples_no_threshold(samples)
+
+            if save_predictions:
+                utils.save_pickle(prediction_paths[i], predictions[i])
+    return predictions
+
+
+def get_predictions_other(method: str, dataset_name: str, split:str, save_predictions: bool = True, overwrite: bool = False) -> list[torch.Tensor]:
+    prediction_paths = utils.get_prediction_paths(method, dataset_name, split)
+    if not overwrite:
+        predictions = utils.load_predictions(prediction_paths)
+    else:
+        predictions = None
+
+    # load dataframe
+    df = dataset_utils.get_processed_df(dataset_name, split)
+
+    # create predictions if any are missing
+    if predictions is None:
+        # get the text column of the df as a list of strings
+        samples = df["text"].tolist()
+        if method == "osdg":
+            predictions = predict_multiple_samples_osdg(samples)
+        elif method == "aurora":
+            predictions = predict_multiple_samples_aurora(samples)
+
+        if save_predictions:
+            utils.save_pickle(prediction_paths, predictions)
     return predictions
 
 

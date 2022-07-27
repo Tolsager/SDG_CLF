@@ -1,7 +1,6 @@
 ![SDG-CLF](https://user-images.githubusercontent.com/73647490/172805470-ffb6a817-7334-40c0-9249-97b8036219ec.jpg)
 
-# Classification of UN Sustainable Development Goals using Tranformers
-**WORK IN PROGRESS**
+# Classification of UN Sustainable Development Goals using Tranformers (WORK IN PROGRESS)
 Predicts the presence of the United Nations Sustainable Development Goals (SDGs) in texts.
 
 We provide 3 fine-tuned models which can be used as an ensemble.

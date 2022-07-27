@@ -1,4 +1,5 @@
 # our ignores
+api_key.py
 *.pt
 tokenizers/
 pretrained_models/

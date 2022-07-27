@@ -1,12 +1,12 @@
+import os
+import pickle
 import random
+from typing import Union
 
-import torchmetrics
-import transformers
 import numpy as np
 import torch
-import os
-from typing import Union
-import pickle
+import torchmetrics
+import transformers
 
 
 def seed_everything(seed_value: int):
@@ -25,7 +25,6 @@ def seed_everything(seed_value: int):
         torch.cuda.manual_seed_all(seed_value)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = True
-
 
 
 def get_tokenizer(tokenizer_type: str):
@@ -109,34 +108,126 @@ def set_metrics_to_device(metrics):
         metrics[k]["metric"] = v["metric"].to("cuda")
 
 
-def get_metrics(threshold, multilabel=False, num_classes=17):
+def get_metrics(threshold=0.5, num_classes=17):
     metrics = {
         "accuracy": {
             "goal": "maximize",
-            "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True, multiclass=not multilabel),
+            "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True,
+                                            multiclass=False),
         },
         "precision": {
             "goal": "maximize",
             "metric": torchmetrics.Precision(threshold=threshold, num_classes=num_classes,
-                                             multiclass=not multilabel),
+                                             multiclass=False),
         },
         "recall": {
             "goal": "maximize",
-            "metric": torchmetrics.Recall(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
+            "metric": torchmetrics.Recall(threshold=threshold, num_classes=num_classes, multiclass=False),
         },
         "f1": {
             "goal": "maximize",
-            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=num_classes, multiclass=not multilabel),
+            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=num_classes, multiclass=False),
         },
     }
     return metrics
+
+
+def print_metrics(metrics: dict[str, torch.Tensor]) -> None:
+    print("Metrics")
+    print("--------")
+    for k, v in metrics.items():
+        print(f"{k}: {v.item()}")
+
 
 def load_pickle(path: str):
     with open(path, "rb") as f:
         contents = pickle.load(f)
     return contents
 
+
 def save_pickle(path: str, obj: object):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb+") as f:
         pickle.dump(obj, f)
+
+
+def get_next_number(dir_path: str) -> int:
+    """
+    Get the next number in the directory.
+    Args:
+        dir_path: path to the directory with files enumerated as "anything_number.pkl"
+
+    Returns:
+        the next number in the sequence
+
+    """
+    files = os.listdir(dir_path)
+    if len(files) == 1:
+        return 0
+    else:
+        file_names = [os.path.splitext(f)[0] for f in files if not f.startswith(".")]
+        file_numbers = [int(name.split("_")[-1]) for name in file_names if "_" in name]
+        return max(file_numbers) + 1
+
+
+def move_to(obj: Union[torch.Tensor, dict, list], device: str):
+    if torch.is_tensor(obj):
+        return obj.to(device)
+    elif isinstance(obj, dict):
+        res = {}
+        for k, v in obj.items():
+            res[k] = move_to(v, device)
+        return res
+    elif isinstance(obj, list):
+        res = []
+        for v in obj:
+            res.append(move_to(v, device))
+        return res
+    else:
+        raise TypeError("Invalid type for move_to")
+
+
+def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str] = None, method: str = None) -> Union[
+    list[str], str]:
+    if method == "osdg" or method == "aurora":
+        prediction_paths = f"predictions/{dataset_name}/{split}/{method}.pkl"
+    else:
+        # remove potential file extension
+        model_weights = [os.path.splitext(w)[0] for w in model_weights]
+        prediction_paths = [f"predictions/{dataset_name}/{split}/{model_weights[i]}.pkl" for i in
+                            range(len(model_weights))]
+    return prediction_paths
+
+
+def load_predictions(prediction_paths: Union[list[str], str]) -> Union[list[torch.Tensor], torch.Tensor, None]:
+    if isinstance(prediction_paths, str):
+        if os.path.exists(prediction_paths):
+            return load_pickle(prediction_paths)
+        else:
+            return None
+
+    # otherwise it's a list of paths and the method is sdg_clf
+    predictions = []
+    for i in range(len(prediction_paths)):
+        if os.path.exists(prediction_paths[i]):
+            predictions.append(load_pickle(prediction_paths[i]))
+        else:
+            predictions.append(None)
+    return predictions
+
+
+def print_prediction(prediction: torch.Tensor) -> None:
+    print("SDGs found in text")
+    print("--------------------")
+    sdg_dict = {1: "No Poverty", 2: "Zero Hunger", 3: "Good Health and Well-Being", 4: "Quality Education",
+                5: "Gender Equality", 6: "Clean Water and Sanitation", 7: "Affordable and Clean Energy",
+                8: "Decent Work and Economic Growth", 9: "Industry, Innovation and Infrastructure",
+                10: "Reduced Inequalities", 11: "Sustainable Cities and Communities",
+                12: "Responsible Consumption and Production", 13: "Climate Action", 14: "Life Below Water",
+                15: "Life On Land", 16: "Peace, Justice and Strong Institutions", 17: "Partnerships for the Goals"}
+    if not torch.any(prediction):
+        print("No SDGs found")
+    else:
+        for i in range(17):
+            if prediction[i].item() is True:
+                print(f"    SDG {i + 1}: {sdg_dict[i + 1]}")

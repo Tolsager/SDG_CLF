@@ -1,6 +1,7 @@
 import torch
 import transformers
 from sdg_clf import utils, modelling
+import numpy as np
 
 
 # transformer class with a model and a tokenizer
@@ -49,6 +50,8 @@ class Transformer:
             predictions for each chunk
 
         """
+        if text is np.nan:
+            return torch.tensor([0] * 17)
         # get model inputs
         model_inputs = self.prepare_model_inputs(text)
         # get predictions
@@ -75,7 +78,7 @@ class Transformer:
 
 def get_transformer(model_type: str, model_weights: str) -> Transformer:
     # get model
-    model = modelling.get_model(model_type, model_weights)
+    model = modelling.load_model(model_type, model_weights)
     # get tokenizer
     tokenizer = utils.get_tokenizer(model_type)
     # create transformer

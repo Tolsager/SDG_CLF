@@ -1,25 +1,15 @@
-import pandas as pd
-import datasets
-import torch
-import os
 import argparse
-
-from torch.utils.data import DataLoader
-from transformers import AutoTokenizer
-from sklearn.model_selection import train_test_split
-import transformers
-from sklearn.model_selection import KFold
-import wandb
-import numpy as np
-
-# our scripts
-from sdg_clf import training
-import torchmetrics
-from sdg_clf import utils
-from api_key import key
-from sdg_clf import modelling
 import dataclasses
+import os
+
+import torch
+
+import wandb
+from api_key import key
 from sdg_clf import dataset_utils
+from sdg_clf import modelling
+from sdg_clf import training
+from sdg_clf import utils
 
 
 @dataclasses.dataclass
@@ -28,8 +18,6 @@ class TrainingParameters:
     batch_size: int = 32
     epochs: int = 2
     weight_decay: float = 1e-2
-
-    as_dict = dataclasses.asdict()
 
 
 def main(
@@ -63,12 +51,16 @@ def main(
         os.environ["WANDB_MODE"] = "offline"
     # Setup W and B project log
     os.environ["WANDB_API_KEY"] = key
-    run = wandb.init(project="sdg_clf", config=training_parameters.as_dict, tags=tags, notes=notes)
+    run = wandb.init(project="sdg_clf", config=dataclasses.asdict(training_parameters), tags=tags, notes=notes)
+    if not log:
+        save_file_name = "model"
+    else:
+        save_file_name = run.name
 
     # Setup correct directory and seed
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
-    model = modelling.load_model()
+    model = modelling.load_model(model_type=model_type)
 
     # Set loss criterion for trainer
     criterion = torch.nn.BCEWithLogitsLoss()
@@ -85,19 +77,19 @@ def main(
         gpu_index=0,
         metrics=metrics,
         log=log,
-        save_filename=run.name,
+        save_file_name=save_file_name,
         save_model=save_model,
         save_metric="f1",
-        hypers=training_parameters.as_dict,
+        hypers=dataclasses.asdict(training_parameters),
     )
     trainer.train(dl_train, dl_val)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--batchsize", help="number of batches sent to model", type=int, default=8)
+    parser.add_argument("-b", "--batch_size", help="number of batches sent to model", type=int, default=32)
     parser.add_argument("-l", "--log", help="log results to weights and biases", action='store_true', default=False)
-    parser.add_argument("-s", "--save", help="save models during training", action="store_true", default=False)
+    parser.add_argument("-s", "--save", help="save models during training", action="store_true", default=True)
     parser.add_argument("-e", "--epochs", help="number of epochs to train model", type=int, default=2)
     parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
     parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
@@ -111,7 +103,7 @@ if __name__ == "__main__":
         model_type=args.model_type,
         log=args.log,
         save_model=args.save,
-        training_parameters=TrainingParameters(args.learning_rate, args.batch_size,args.epochs, args.weight_decay),
+        training_parameters=TrainingParameters(args.learning_rate, args.batch_size, args.epochs, args.weight_decay),
         tags=args.tags,
         notes=args.notes,
     )

@@ -132,6 +132,13 @@ def get_metrics(threshold=0.5, num_classes=17):
     return metrics
 
 
+def print_metrics(metrics: dict[str, torch.Tensor]) -> None:
+    print("Metrics")
+    print("--------")
+    for k, v in metrics.items():
+        print(f"{k}: {v.item()}")
+
+
 def load_pickle(path: str):
     with open(path, "rb") as f:
         contents = pickle.load(f)
@@ -184,6 +191,8 @@ def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str]
     if method == "osdg" or method == "aurora":
         prediction_paths = f"predictions/{dataset_name}/{split}/{method}.pkl"
     else:
+        # remove potential file extension
+        model_weights = [os.path.splitext(w)[0] for w in model_weights]
         prediction_paths = [f"predictions/{dataset_name}/{split}/{model_weights[i]}.pkl" for i in
                             range(len(model_weights))]
     return prediction_paths
@@ -204,3 +213,20 @@ def load_predictions(prediction_paths: Union[list[str], str]) -> Union[list[torc
         else:
             predictions.append(None)
     return predictions
+
+
+def print_prediction(prediction: torch.Tensor) -> None:
+    print("SDGs found in text")
+    print("--------------------")
+    sdg_dict = {1: "No Poverty", 2: "Zero Hunger", 3: "Good Health and Well-Being", 4: "Quality Education",
+                5: "Gender Equality", 6: "Clean Water and Sanitation", 7: "Affordable and Clean Energy",
+                8: "Decent Work and Economic Growth", 9: "Industry, Innovation and Infrastructure",
+                10: "Reduced Inequalities", 11: "Sustainable Cities and Communities",
+                12: "Responsible Consumption and Production", 13: "Climate Action", 14: "Life Below Water",
+                15: "Life On Land", 16: "Peace, Justice and Strong Institutions", 17: "Partnerships for the Goals"}
+    if not torch.any(prediction):
+        print("No SDGs found")
+    else:
+        for i in range(17):
+            if prediction[i].item() is True:
+                print(f"    SDG {i + 1}: {sdg_dict[i + 1]}")

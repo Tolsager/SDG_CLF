@@ -1,2 +1,0 @@
-api: 1, split: train, prections: all
-{'accuracy': tensor(0.0749), 'auroc': tensor(0.6783), 'precision': tensor(0.3254), 'recall': tensor(0.4792), 'f1': tensor(0.3876)}

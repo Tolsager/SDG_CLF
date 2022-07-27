@@ -1,15 +1,13 @@
 import os
-
-import torch
-import numpy as np
-from typing import Callable, Union
-from tqdm import tqdm, trange
 from datetime import datetime
-import transformers
+from typing import Callable, Union
+
+import numpy as np
+import torch
 import wandb
+from tqdm import tqdm, trange
 
 from sdg_clf.utils import get_metrics
-from .dataset_utils import load_ds_dict
 
 
 class Trainer:
@@ -52,7 +50,7 @@ class Trainer:
         self.hypers = hypers
         self.optimizer = self.set_optimizer(self.model)
         self.epochs = hypers["epochs"]
-        self.save_filename = save_filename
+        self.save_file_name = save_filename
         self.criterion = criterion
         self.save_model = save_model
         self.call_tqdm = call_tqdm
@@ -176,7 +174,7 @@ class Trainer:
                     os.makedirs(f"finetuned_models", exist_ok=True)
                     torch.save(
                         self.model.state_dict(),
-                        f"finetuned_models/{self.save_filename}_{self.time}.pt",
+                        f"finetuned_models/{self.save_file_name}_{self.time}.pt",
                     )
 
             for k, v in epoch_metrics_val.items():
@@ -527,23 +525,3 @@ class SDGTrainer(Trainer):
         model_outputs = self.model(**model_inputs).logits.sigmoid()
         prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
-
-
-if __name__ == "__main__":
-    # trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
-    # prediction = trainer.infer_sample("The goal of this report is to help third-world countries improve their infrastructure by improving the roads and thus increasing the access to school and education")
-    # print(prediction)
-    # model_inputs = trainer.prepare_long_text_input(sample)
-    ds_dict = load_ds_dict("roberta-base", tweet=False, path_data="../data")
-    test = ds_dict["test"]
-    tokenizer = transformers.AutoTokenizer.from_pretrained("../tokenizers/roberta-base")
-    sdg_model = transformers.AutoModelForSequenceClassification.from_pretrained("../pretrained_models/roberta-base",
-                                                                                num_labels=17)
-    sdg_model.cuda()
-    sdg_model.load_state_dict(torch.load("../playful-sunset-10_0603190924.pt"))
-
-    trainer = SDGTrainer(tokenizer=tokenizer, model=sdg_model)
-    test.set_format("pt", columns=["input_ids", "label"])
-    dl = torch.utils.data.DataLoader(test)
-    res = trainer.test_scopus_mean(dl)
-    print(res)

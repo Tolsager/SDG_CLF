@@ -1,4 +1,5 @@
 import ast
+import os.path
 from typing import Union
 
 import requests
@@ -158,6 +159,7 @@ def get_predictions_sdg_clf(dataset_name: str, split: str, model_weights: list[s
             predictions[i] = transformer.predict_multiple_samples_no_threshold(samples)
 
             if save_predictions:
+                os.makedirs(os.path.dirname(prediction_paths[i]), exist_ok=True)
                 utils.save_pickle(prediction_paths[i], predictions[i])
     return predictions
 

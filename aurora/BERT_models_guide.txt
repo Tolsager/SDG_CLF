@@ -1,2 +1,0 @@
-The pre-trained Bert models where downloaded as .h5 files from:
-https://zenodo.org/record/5918475#.YpoKzqhBxyx

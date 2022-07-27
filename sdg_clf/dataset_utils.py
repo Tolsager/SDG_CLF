@@ -15,22 +15,31 @@ def process_scopus_df() -> pd.DataFrame:
     process the scopus dataset
     """
     df = pd.read_csv("data/raw/scopus_ready_to_use.csv")
+
     # lower Abstract
     df["Abstract"] = df["Abstract"].str.lower()
+
+    # remove extra whitespace in the "Abstract" column
+    df["Abstract"] = df["Abstract"].str.replace(r"\s+", " ")
+
     # remove duplicate abstracts
     df = df.drop_duplicates("Abstract")
+
     # remove rows with no abstract
     df = df[df["Abstract"] != "[no abstract available]"]
+
     # remove rows with nclasses of 0
     df = df[df["nclasses"] != 0]
+
     # remove rows with the Chinese archaeological shuidonggou which abbreviates to SDG
     df = df[~df["Abstract"].str.contains("shuidonggou")]
+
     # correct mislabelled sdg1s
     sdg1_pattern = re.compile(r"(sdg\s?1)(\D|$)")
     df["sdg1"] = df["Abstract"].apply(lambda x: True if sdg1_pattern.search(x) is not None else False)
 
     # add the sdg columns
-    df_clean = df[[f"sdg{i}" for i in range(1, 18)]].copy()
+    df_clean = df[[f"sdg{i}" for i in range(1, 18)]].astype(int).copy()
     df_clean["text"] = df["Abstract"]
 
     df_clean.reset_index(drop=True, inplace=True)
@@ -42,10 +51,18 @@ def process_twitter_df() -> pd.DataFrame:
     process the twitter dataset
     """
     df = pd.read_csv("data/raw/allSDGtweets.csv", index_col=0, encoding="latin")
+
     # lower text
     df["text"] = df["text"].str.lower()
+
     # remove duplicate text
     df = df.drop_duplicates("text")
+
+    # remove rows with nans in any column
+    df = df.dropna(axis=0, how="any")
+
+    # remove extra whitespace in the "text" column
+    df["text"] = df["text"].str.replace(r"\s+", " ")
 
     # remove non english rows
     df = df[df["lang"] == "en"]
@@ -53,7 +70,7 @@ def process_twitter_df() -> pd.DataFrame:
     # remove the hashtags from the #sdg columns
     df.rename(columns={f"#sdg{i}": f"sdg{i}" for i in range(1, 18)}, inplace=True)
 
-    df_clean = df[[f"sdg{i}" for i in range(1, 18)]].copy()
+    df_clean = df[[f"sdg{i}" for i in range(1, 18)]].astype(int).copy()
     df_clean["text"] = df["text"]
     # reset index
     df_clean.reset_index(drop=True, inplace=True)
@@ -68,6 +85,9 @@ def process_osdg_df() -> pd.DataFrame:
     df["text"] = df["text"].str.lower()
     # remove duplicate text
     df = df.drop_duplicates("text")
+
+    # remove extra whitespace in the "text" column
+    df["text"] = df["text"].str.replace(r"\s+", " ")
 
     # remove rows where labels_negative is larger than labels_positive
     df = df[df["labels_negative"] <= df["labels_positive"]]
@@ -89,7 +109,7 @@ def process_osdg_df() -> pd.DataFrame:
     labels = np.stack(labels, axis=0)
     df[[f"sdg{i}" for i in range(1, 18)]] = labels
 
-    df_clean = df[[f"sdg{i}" for i in range(1, 18)]].copy()
+    df_clean = df[[f"sdg{i}" for i in range(1, 18)]].astype(int).copy()
     df_clean["text"] = df["text"]
 
     # reset index
@@ -126,8 +146,6 @@ def process_text(text: str) -> str:
     """
     # lower text
     text = text.lower()
-    # remove extra whitespace
-    text = " ".join(text.split())
 
     # remove labels from the tweet
     sdg_prog1 = r"#(?:sdg)s?(\s+)?(\d+)?"
@@ -144,7 +162,7 @@ def process_text(text: str) -> str:
 
 def process_df(dataset_name: str = "twitter") -> pd.DataFrame:
     """
-    process the dataframe.
+    process the dataframe and creates the new column "processed_text". This might contain nans
     Args:
         dataset_name:  {twitter, scopus, osdg}
 
@@ -340,15 +358,16 @@ def process_dataset(dataset: datasets.Dataset, tokenizer: transformers.PreTraine
         # tokenize text
         tokenizer_output = tokenizer(text, max_length=max_length, padding="max_length", truncation=True)
 
-        label = [int(sample[f"sdg{i}"]) for i in range(1, 18)]
+        label = [sample[f"sdg{i}"] for i in range(1, 18)]
         return {"input_ids": tokenizer_output["input_ids"], "attention_mask": tokenizer_output["attention_mask"],
                 "label": label}
 
     ds = dataset.map(processing_func, batched=False, num_proc=1)
 
     # remove unused columns
-    ds = ds.remove_columns(["processed_text", "text"] + [f"sdg{i}" for i in range(1, 18)])
+    ds = ds.remove_columns(["processed_text"] + [f"sdg{i}" for i in range(1, 18)])
     return ds
+
 
 def get_processed_ds(dataset_name: str, model_type: str, split: str) -> datasets.Dataset:
     """
@@ -356,6 +375,7 @@ def get_processed_ds(dataset_name: str, model_type: str, split: str) -> datasets
     Args:
         dataset_name:  {twitter, scopus, osdg}
         model_type: a model from the Huggingface Hub with an AutoModelForSequenceClassification class
+        split: data split to use
 
     Returns:
         dataset
@@ -366,7 +386,13 @@ def get_processed_ds(dataset_name: str, model_type: str, split: str) -> datasets
         ds = datasets.load_from_disk(ds_load_path)
     else:
         df = get_processed_df(dataset_name, split)
-        ds = datasets.Dataset.from_pandas(df)
+        # remove columns with nans in "processed_text" as we can't train on these and the dataset is only used
+        # during training.
+        df = df.dropna()
+        features = datasets.Features(
+            {f"sdg{i}": datasets.Value("int8") for i in range(1, 18)} | {"processed_text": datasets.Value("string")})
+        ds = datasets.Dataset.from_pandas(df, features=features)
+        # ds = datasets.Dataset.from_pandas(df)
         tokenizer = get_tokenizer(model_type)
         ds = process_dataset(ds, tokenizer)
         ds.save_to_disk(ds_load_path)
@@ -382,239 +408,3 @@ def get_dataloader(dataset_name: str, model_type: str, split: str, batch_size: i
 
 def load_processed_dataset(dataset_name: str, split: str) -> datasets.Dataset:
     return datasets.load_from_disk(f"data/processed/{dataset_name}/base")[split]
-# def get_base_dataset(dataset_name: str, split: str) -> datasets.Dataset:
-#     dataset_path = f"data/processed/{dataset_name}/base"
-#     if os.path.exists(dataset_path):
-#         return datasets.load_from_disk(dataset_path)[split]
-    # else:
-    #     if dataset_name == "scopus":
-    #         df = process_scopus()
-    #     elif
-
-    # return datasets.load_from_disk(f"data/raw/{dataset_name}")[split]
-
-
-# def process_dataset(
-#         file: str = "data/raw/allSDGtweets.csv",
-#         nrows: int = None,
-#         multi_label: bool = True,
-#         tweet: bool = True,
-# ):
-#     """
-#     Loads the tweet CSV into a huggingface dataset and apply the processing
-#
-#     Args:
-#         file (str, optional): path to csv file. Defaults to "data/raw/allSDGtweets.csv".
-#         nrows (int, optional): only used for debugging the processing. Defaults to None
-#         multi_label (bool, optional): if true only load samples with nclasses==1. Defaults to True
-#         tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
-#
-#     Returns:
-#         datasets.Dataset: a processed dataset
-#     """
-#     # load the csv file into a huggingface dataset
-#     # Set the encoding to latin to be able to read special characters such as ñ
-#     df = pd.read_csv(file, encoding="latin", nrows=nrows)
-#
-#     if not tweet:
-#         df = df.drop(columns=["text"])
-#         df.rename(columns={"Abstract": "text"}, inplace=True)
-#     df = df.drop_duplicates("text")
-#     ds = datasets.Dataset.from_pandas(df)
-#     if not multi_label:
-#         ds = ds.filter(lambda sample: sample["nclasses"] == 1)
-#
-#     # remove non-english text
-#     if tweet:
-#         ds = ds.filter(lambda sample: sample["lang"] == "en")
-#     ds = ds.map(
-#         process_sample, num_proc=1, fn_kwargs={"tweet": tweet}
-#     )
-#
-#     # remove redundant columns
-#     if tweet:
-#         ds = ds.remove_columns(
-#             ["Unnamed: 0", "id", "created_at", "category", "__index_level_0__", "lang"] + [f"#sdg{i}" for i in
-#                                                                                            range(1, 18)]
-#         )
-#     else:
-#         ds = ds.remove_columns(
-#             [
-#                 "Unnamed: 0",
-#                 "Title",
-#                 "Year",
-#                 "Link",
-#                 "Author.Keywords",
-#                 "Index.Keywords",
-#                 "EID",
-#                 "__index_level_0__"
-#             ] + [f"sdg{i}" for i in range(1, 18)]
-#         )
-#
-#     return ds
-
-
-# def osdg_mapping(sample: dict):
-#     sample["text"] = sample["text"].lower()
-#
-#     # remove labels from the tweet
-#     sdg_prog1 = re.compile(r"#(?:sdg)s?(\s+)?(\d+)?")
-#     sample = remove_with_regex(sample, pattern=sdg_prog1)
-#     sdg_prog2 = re.compile(r"(?:sdg)s?(\s?)(\d+)?")
-#     sample = remove_with_regex(sample, pattern=sdg_prog2)
-#     sdg_prog3 = re.compile(r"(sustainable development goals?\s?)(\d+)?")
-#     sample = remove_with_regex(sample, pattern=sdg_prog3)
-#     sdg_prog4 = re.compile(r"© \d\d(\d?)\d")
-#     sample = remove_with_regex(sample, pattern=sdg_prog4)
-#     sdg_prog5 = re.compile(r"elsevier\s+Ltd")
-#     sample = remove_with_regex(sample, pattern=sdg_prog5)
-#
-#     # remove extra whitespace
-#     sample["text"] = " ".join(sample["text"].split())
-#
-#     # create a label vector (only applicable for tweets)
-#     label = [0] * 17
-#     label[sample["sdg"] - 1] = 1
-#     sample["label"] = label
-#
-#     return sample
-#
-#
-# def split_dataset(
-#         ds: datasets.Dataset, tweet: bool = True
-# ):
-#     """
-#     Splits the huggingface dataset into a test, training and validation set for tweets and a test and validation set for Scopus Abtracts
-#
-#     Args:
-#         ds (datasets.Dataset): a dataset.
-#         tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
-#
-#     Returns:
-#         dict of datasets.Dataset: Dictionary of the splitted dataset
-#     """
-#     ds = ds.shuffle(seed=0)
-#     if tweet:
-#         splits = 10
-#         dataset_splits = {
-#             "train": datasets.concatenate_datasets(
-#                 [ds.shard(splits, i) for i in range(2, splits)]
-#             ),
-#             "validation": ds.shard(splits, 0),
-#             "test": ds.shard(splits, 1),
-#         }
-#         dataset_dict = datasets.DatasetDict(dataset_splits)
-#     else:
-#         dataset_dict = ds.train_test_split(test_size=0.5, shuffle=False)
-#
-#     return dataset_dict
-#
-#
-# def create_base_dataset(tweet: bool = True, nrows: int = None):
-#     """
-#     processes the text of the two datasets
-#
-#     Args:
-#         tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
-#         nrows (int, optional): only used for debugging. Defaults to None
-#         path_data (str, optional): path to data directory. Defaults to "data"
-#
-#     Returns:
-#         None
-#
-#     """
-#     path_data = "data"
-#     path = os.path.join(path_data, "raw")
-#     if tweet:
-#         path = os.path.join(path, "twitter.csv")
-#     else:
-#         path = os.path.join(path, "scopus.csv")
-#
-#     ds = process_dataset(file=path, nrows=nrows, tweet=tweet)
-#     ds_dict = split_dataset(ds, tweet=tweet)
-#     path_save = os.path.join(path_data, "processed")
-#     if tweet:
-#         path_save = os.path.join(path_save, "twitter/base")
-#     else:
-#         path_save = os.path.join(path_save, "scopus/base")
-#     ds_dict.save_to_disk(path_save)
-#
-#
-# def get_dataset(tokenizer_type: str, tweet: bool = True, sample_data: bool = False, max_length: int = 260,
-#                 overwrite: bool = False):
-#     """
-#     Creates the dataset if it doesn't already exist otherwise it loads it from the correct folder
-#
-#     Args:
-#         tokenizer_type (str): name of a huggingface tokenizer e.g. bert-base-uncased
-#         tweet (bool, optional): if scopus or tweet dataset. Defaults to True
-#         sample_data (bool, optional): if true only selects 20 samples. Used for debugging. Defaults to False
-#         max_length (int, optional): max token length used for training the transformer. Defaults to 260
-#         overwrite (bool, optional): if an existing dataset should be overwritten. Defaults to False
-#         path_data (str, optional): path to data directory. Defaults to "data"
-#         path_tokenizers (str, optional): path to tokenizer. Defaults to "tokenizers"
-#
-#     Returns:
-#         processed dataset for training with transformer outputs and labels
-#     """
-#     # load tokenized dataset if exists
-#     path_data = "data/processed"
-#     if tweet:
-#         path_data = os.path.join(path_data, "twitter")
-#     else:
-#         path_data = os.path.join(path_data, "scopus")
-#     path_base = os.path.join(path_data, "base")
-#
-#     path_ds_dict_tokens = os.path.join(path_data, tokenizer_type)
-#     if os.path.exists(path_ds_dict_tokens) and not overwrite:
-#         ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
-#         ds_dict_base = datasets.load_from_disk(path_base)
-#         for split in ds_dict_base.keys():
-#             ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
-#             if sample_data:
-#                 ds_dict_tokens[split] = ds_dict_tokens[split].select(np.arange(20))
-#         return ds_dict_tokens
-#
-#     # else create dataset
-#     if not os.path.exists(path_base):
-#         create_base_dataset(tweet=tweet)
-#     ds_dict_base = datasets.load_from_disk(path_base)
-#
-#     tokenizer = get_tokenizer(tokenizer_type)
-#     ds_dict_tokens = tokenize_dataset(tokenizer, tweet=tweet, max_length=max_length)
-#     path_save = path_data + f"/{tokenizer_type}"
-#     ds_dict_tokens.save_to_disk(path_save)
-#
-#     for split in ds_dict_base.keys():
-#         ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
-#         if sample_data:
-#             ds_dict_tokens[split] = ds_dict_tokens[split].select(np.arange(20))
-#     return ds_dict_tokens
-#
-#
-# def load_ds_dict(tokenizer_type: str, tweet: bool = True):
-#     """
-#     Load an existing dataset from the files
-#
-#         Args:
-#             tokenizer_type (str): name of a huggingface tokenizer e.g. bert-base-uncased
-#             tweet (bool, optional): whether the data are tweets or abstracts. Defaults to True
-#
-#         Returns:
-#             dict of datasets.Dataset: Dictionary of the splitted dataset
-#         """
-#     path_data = "data"
-#     path_ds = os.path.join(path_data, "processed", "twitter" if tweet else "scopus")
-#     path_ds_dict_tokens = os.path.join(path_ds, tokenizer_type)
-#     ds_dict_tokens = datasets.load_from_disk(path_ds_dict_tokens)
-#
-#     path_ds_dict_base = os.path.join(path_ds, "base")
-#     ds_dict_base = datasets.load_from_disk(path_ds_dict_base)
-#
-#     for split in ds_dict_base.keys():
-#         ds_dict_tokens[split] = ds_dict_tokens[split].add_column("label", ds_dict_base[split]["label"])
-#
-#     return ds_dict_tokens
-
-
-

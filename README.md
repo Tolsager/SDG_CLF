@@ -1,7 +1,37 @@
 ![SDG-CLF](https://user-images.githubusercontent.com/73647490/172805470-ffb6a817-7334-40c0-9249-97b8036219ec.jpg)
 
-# Classification of UN Sustainable Development Goals using BERT-Tranformers
+# Classification of UN Sustainable Development Goals using Tranformers
+**WORK IN PROGRESS**
+Predicts the presence of the United Nations Sustainable Development Goals (SDGs) in texts.
 
-A project work on the classification of UN Sustainable Development Goals using BERT-Transformers was completed at DTU, Copenhagen by Rasmus Steen Mikkelsen, Rebekka Wätzold Høgh Madsen, and Victor Tolsager Olesen with Supervision from David Lusseau. The UN SDG Report 2019 revealed significant discrepancies in regional and national progress amongst others attributed to differences in the level of awareness of the individual SDGs as well as in determining which SDGs are most relevant. The authors propose that a solution to increased awareness of SDG and their relevance is to assure proper classification of SDG presence in documents. The project work, therefore, takes advantage of the success of transformers in the field of NLP to classify SDGs from texts. The classifiers are trained on a dataset of tweets and have been tested in several domains (tweets, academic abstract). The goal is to develop a general open-source model that can outperform current SDG classifiers and is not domain-specific.
+We provide 3 fine-tuned models which can be used as an ensemble.
 
-For model and data downloads go to [**zenodo.org/sdg-clf**](https://zenodo.org/communities/sdg-clf/)
+# Predict on text
+1. Clone the repository and navigate into it
+```bash
+git clone https://github.com/Tolsager/SDG_CLF/
+cd SDG_CLF
+```
+
+2. Download the fine-tuned models from ![Google Drive](https://drive.google.com/drive/u/2/folders/1kRPZtGJyI9dRq59wQSMxEeDHgQ-erw_m) and place them in `SDG_CLF/finetuned_models`
+
+3. Download the necessary libraries
+```bash
+pip install -r requirements.txt
+```
+
+4. Run the predict script
+Predict with the fine-tuned roberta-large model
+```bash
+python predict.py --text "Access to safe water, sanitation and hygiene is the most basic human need for health and well-being." --model_weights roberta-large_model0.pt 
+```
+
+Predict with the fine-tuned roberta-large model at a costum threshold of 0.3
+```bash
+python predict.py --text "Access to safe water, sanitation and hygiene is the most basic human need for health and well-being." --model_weights roberta-large_model0.pt --threshold 0.3
+```
+
+Predict with an ensemble of the 3 fine-tuned models
+```bash
+python predict.py --text "Access to safe water, sanitation and hygiene is the most basic human need for health and well-being." --model_weights roberta-large_model0.pt albert-large-v2_model0.pt deberta-v3-large_model0.pt 
+```

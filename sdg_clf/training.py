@@ -4,10 +4,14 @@ from typing import Callable, Union
 
 import numpy as np
 import torch
+import transformers
 import wandb
 from tqdm import tqdm, trange
+import torchmetrics
 
 from sdg_clf.utils import get_metrics
+
+import pytorch_lightning as pl
 
 
 class Trainer:
@@ -525,3 +529,31 @@ class SDGTrainer(Trainer):
         model_outputs = self.model(**model_inputs).logits.sigmoid()
         prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
+
+
+class LitSDG(pl.LightningModule):
+    def __init__(self, model: transformers.PreTrainedModel):
+        super().__init__()
+        self.model = model
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+        self.accuracy = torchmetrics.Accuracy(num_classes=17, subset_accuracy=True, multiclass=False)
+        self.precision = torchmetrics.Precision(num_classes=17)
+
+    def training_step(self, batch, batch_idx):
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+        labels = batch["label"]
+        model_outputs = self.model(input_ids, attention_mask=attention_mask).logits
+        loss = self.criterion(model_outputs, labels)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, logger=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+        labels = batch["label"]
+        model_outputs = self.model(input_ids, attention_mask=attention_mask).logits
+        loss = self.criterion(model_outputs, labels)
+        self.log("val_loss", loss)
+
+

@@ -9,7 +9,7 @@ import wandb
 from tqdm import tqdm, trange
 import torchmetrics
 
-from sdg_clf.utils import get_metrics
+from sdg_clf import utils
 
 import pytorch_lightning as pl
 
@@ -536,8 +536,15 @@ class LitSDG(pl.LightningModule):
         super().__init__()
         self.model = model
         self.criterion = torch.nn.BCEWithLogitsLoss()
-        self.accuracy = torchmetrics.Accuracy(num_classes=17, subset_accuracy=True, multiclass=False)
-        self.precision = torchmetrics.Precision(num_classes=17)
+        self.metrics = utils.get_metrics()
+        self.sigmoid = torch.nn.Sigmoid()
+        # self.exact_match_ratio = torchmetrics.Accuracy(num_classes=17, subset_accuracy=True, multiclass=False)
+        # self.precision_micro = torchmetrics.Precision(num_classes=17, reduce="micro")
+        # self.precision_macro = torchmetrics.Precision(num_classes=17, reduce="macro")
+        # self.recall_micro = torchmetrics.Recall(num_classes=17, reduce="micro")
+        # self.recall_macro = torchmetrics.Recall(num_classes=17, reduce="macro")
+        # self.f1_micro = torchmetrics.F1(num_classes=17, reduce="micro")
+        # self.f1_macro = torchmetrics.F1(num_classes=17, reduce="macro")
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
@@ -545,7 +552,11 @@ class LitSDG(pl.LightningModule):
         labels = batch["label"]
         model_outputs = self.model(input_ids, attention_mask=attention_mask).logits
         loss = self.criterion(model_outputs, labels)
+        preds = self.sigmoid(model_outputs)
+        metrics = utils.add_suffix_to_keys(self.metrics, "train")
+        utils.update_metrics_pl(metrics, preds, labels)
         self.log("train_loss", loss, on_step=True, on_epoch=True, logger=True)
+        self.log_dict(metrics)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -554,6 +565,8 @@ class LitSDG(pl.LightningModule):
         labels = batch["label"]
         model_outputs = self.model(input_ids, attention_mask=attention_mask).logits
         loss = self.criterion(model_outputs, labels)
+        preds = self.sigmoid(model_outputs)
+        metrics = utils.add_suffix_to_keys(self.metrics, "val")
+        utils.update_metrics_pl(metrics, preds, labels)
         self.log("val_loss", loss)
-
-
+        self.log_dict(metrics)

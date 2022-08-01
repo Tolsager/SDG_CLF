@@ -1,7 +1,7 @@
 import os
 import pickle
 import random
-from typing import Union
+from typing import Union, Any
 
 import numpy as np
 import torch
@@ -130,6 +130,38 @@ def get_metrics(threshold=0.5, num_classes=17):
         },
     }
     return metrics
+
+
+def get_metrics_pl():
+    metrics = {
+        "exact_match_ratio": torchmetrics.Accuracy(num_classes=17, subset_accuracy=True, multiclass=False),
+        "precision_micro": torchmetrics.Precision(num_classes=17, multiclass=False, average="micro"),
+        "recall_micro": torchmetrics.Recall(num_classes=17, multiclass=False, average="micro"),
+        "f1_micro": torchmetrics.F1Score(num_classes=17, multiclass=False, average="micro"),
+        "precision_macro": torchmetrics.Precision(num_classes=17, multiclass=False, average="macro"),
+        "recall_macro": torchmetrics.Recall(num_classes=17, multiclass=False, average="macro"),
+        "f1_macro": torchmetrics.F1Score(num_classes=17, multiclass=False, average="macro"),
+    }
+    return metrics
+
+
+def add_suffix_to_keys(dictionary: dict[str, Any], suffix: str) -> dict[str, Any]:
+    """
+    Adds suffix to all keys in dictionary
+
+    Args:
+        dictionary (dict[str, Any]): Dictionary to add suffix to
+        suffix (str): Suffix to add to all keys in dictionary
+
+    Returns:
+        Dictionary with all keys in dictionary with suffix added
+    """
+    return {k + suffix: v for k, v in dictionary.items()}
+
+
+def update_metrics_pl(metrics: dict[str, torchmetrics.Metric], preds: torch.Tensor, labels: torch.Tensor):
+    for metric in metrics.values():
+        metric(target=labels, preds=preds)
 
 
 def print_metrics(metrics: dict[str, torch.Tensor]) -> None:

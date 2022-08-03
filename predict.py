@@ -13,6 +13,7 @@ def main(text: str = None, file: str = None, column: str = "text", save_path: st
     transformer_list = base.get_multiple_transformers(model_types, model_weights)
 
     if text is not None:
+        text = dataset_utils.preprocess_text(text)
         predictions = [transformer.predict_sample_no_threshold(text) for transformer in transformer_list]
         average_prediction = evaluation.combine_predictions(predictions)
         threshold_prediction = evaluation.threshold_predictions(average_prediction, threshold)

@@ -46,6 +46,6 @@ python predict.py --text "Access to safe water, sanitation and hygiene is the mo
 
 # Predict on CSV file
 Predict with roberta-large on file "sample.csv" with a column "text" that the model should predict on. Save the predictions in a csv "sample_predictions.csv"
-``bash
+```bash
 python predict.py --file sample.csv --model_weights roberta-large_model0.pt --column text --save_path predictions.csv
 ```

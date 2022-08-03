@@ -6,7 +6,6 @@ from sdg_clf import evaluation, base, utils, modelling
 
 
 def main(text: str, model_weights: list[str] = None, threshold: float = 0.5):
-    os.chdir(os.path.dirname(__file__))
     model_types = modelling.get_model_types(model_weights)
     transformer_list = base.get_multiple_transformers(model_types, model_weights)
     predictions = [transformer.predict_sample_no_threshold(text) for transformer in transformer_list]

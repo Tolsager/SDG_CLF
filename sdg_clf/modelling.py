@@ -20,7 +20,7 @@ def load_model(model_type: str = None, weights_name: str = None) -> AutoModelFor
     """
     # determine model_type from file_name
     if weights_name is not None and model_type is None:
-        model_type = os.path.basename(weights_name).split("_")[0]
+        model_type = weights_name.split("_")[0]
 
     # load model architecture
     path_pretrained_model = os.path.join("pretrained_models", model_type)
@@ -70,4 +70,4 @@ def get_model_types(model_weights: list[str]) -> list[str]:
         list of model types.
 
     """
-    return [os.path.basename(w).split("_")[0] for w in model_weights]
+    return [w.split("_")[0] for w in model_weights]

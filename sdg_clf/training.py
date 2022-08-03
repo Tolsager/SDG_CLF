@@ -536,7 +536,7 @@ class LitSDG(pl.LightningModule):
         super().__init__()
         self.model = model
         self.criterion = torch.nn.BCEWithLogitsLoss()
-        self.metrics = utils.get_metrics()
+        self.metrics = utils.get_metrics_pl()
         self.sigmoid = torch.nn.Sigmoid()
 
     def training_step(self, batch, batch_idx):

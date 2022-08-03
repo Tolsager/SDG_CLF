@@ -12,7 +12,16 @@ git clone https://github.com/Tolsager/SDG_CLF/
 cd SDG_CLF
 ```
 
-2. Download the fine-tuned models from ![Google Drive](https://drive.google.com/drive/u/2/folders/1kRPZtGJyI9dRq59wQSMxEeDHgQ-erw_m) and place them in `SDG_CLF/finetuned_models`
+2. Download everything from ![Google Drive](https://drive.google.com/drive/u/2/folders/1kRPZtGJyI9dRq59wQSMxEeDHgQ-erw_m) and place them in `SDG_CLF/finetuned_models`.
+You should then have the following file architecture
+```
+SDG_CLF
+--finetuned_models
+  --microsoft
+    --deberta-v3-large_model0.pt
+  --albert-large-v2_model0.pt
+  --roberta-large_model0.pt
+```
 
 3. Download the necessary libraries
 ```bash

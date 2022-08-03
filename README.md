@@ -5,7 +5,7 @@ Predicts the presence of the United Nations Sustainable Development Goals (SDGs)
 
 We provide 3 fine-tuned models which can be used as an ensemble.
 
-# Predict on text
+# Setup
 1. Clone the repository and navigate into it
 ```bash
 git clone https://github.com/Tolsager/SDG_CLF/
@@ -27,7 +27,7 @@ SDG_CLF
 ```bash
 pip install -r requirements.txt
 ```
-
+# Predict on text
 4. Run the predict script
 Predict with the fine-tuned roberta-large model
 ```bash
@@ -42,4 +42,10 @@ python predict.py --text "Access to safe water, sanitation and hygiene is the mo
 Predict with an ensemble of the 3 fine-tuned models
 ```bash
 python predict.py --text "Access to safe water, sanitation and hygiene is the most basic human need for health and well-being." --model_weights roberta-large_model0.pt albert-large-v2_model0.pt microsoft/deberta-v3-large_model0.pt 
+```
+
+# Predict on CSV file
+Predict with roberta-large on file "sample.csv" with a column "text" that the model should predict on. Save the predictions in a csv "sample_predictions.csv"
+```bash
+python predict.py --file sample.csv --model_weights roberta-large_model0.pt --column text --save_path predictions.csv
 ```

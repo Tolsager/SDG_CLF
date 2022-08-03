@@ -41,5 +41,5 @@ python predict.py --text "Access to safe water, sanitation and hygiene is the mo
 
 Predict with an ensemble of the 3 fine-tuned models
 ```bash
-python predict.py --text "Access to safe water, sanitation and hygiene is the most basic human need for health and well-being." --model_weights roberta-large_model0.pt albert-large-v2_model0.pt deberta-v3-large_model0.pt 
+python predict.py --text "Access to safe water, sanitation and hygiene is the most basic human need for health and well-being." --model_weights roberta-large_model0.pt albert-large-v2_model0.pt microsoft/deberta-v3-large_model0.pt 
 ```

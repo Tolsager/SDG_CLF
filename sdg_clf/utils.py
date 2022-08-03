@@ -161,7 +161,7 @@ def add_suffix_to_keys(dictionary: dict[str, Any], suffix: str) -> dict[str, Any
 
 def update_metrics_pl(metrics: dict[str, torchmetrics.Metric], preds: torch.Tensor, labels: torch.Tensor):
     for metric in metrics.values():
-        metric(target=labels, preds=preds)
+        metric(preds, labels)
 
 
 def print_metrics(metrics: dict[str, torch.Tensor]) -> None:

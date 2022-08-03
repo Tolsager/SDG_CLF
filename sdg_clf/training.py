@@ -538,13 +538,6 @@ class LitSDG(pl.LightningModule):
         self.criterion = torch.nn.BCEWithLogitsLoss()
         self.metrics = utils.get_metrics()
         self.sigmoid = torch.nn.Sigmoid()
-        # self.exact_match_ratio = torchmetrics.Accuracy(num_classes=17, subset_accuracy=True, multiclass=False)
-        # self.precision_micro = torchmetrics.Precision(num_classes=17, reduce="micro")
-        # self.precision_macro = torchmetrics.Precision(num_classes=17, reduce="macro")
-        # self.recall_micro = torchmetrics.Recall(num_classes=17, reduce="micro")
-        # self.recall_macro = torchmetrics.Recall(num_classes=17, reduce="macro")
-        # self.f1_micro = torchmetrics.F1(num_classes=17, reduce="micro")
-        # self.f1_macro = torchmetrics.F1(num_classes=17, reduce="macro")
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]

@@ -6,7 +6,14 @@ import requests
 import torch
 import torchmetrics
 
-from sdg_clf import base, utils, dataset_utils, osdg_ip, aurora_mbert, modelling
+from sdg_clf import base, utils, dataset_utils, aurora_mbert, modelling
+
+
+try:
+    from sdg_clf import osdg_ip
+except ImportError:
+    # make sure the evaluation module can run if the osdg_ip module is not available
+    osdg_ip = None
 
 
 def predict_sample_osdg(text: str, ip: str = osdg_ip.ip1) -> Union[torch.Tensor, None]:
@@ -104,17 +111,6 @@ def predict_multiple_samples_aurora(samples: list[str]) -> torch.Tensor:
     return predictions
 
 
-def get_average_predictions(text: str, transformers: Union[base.Transformer, list[base.Transformer]]) -> torch.Tensor:
-    if isinstance(transformers, base.Transformer):
-        transformers = [transformers]
-    predictions = []
-    for transformer in transformers:
-        prediction = transformer.predict(text)
-        predictions.append(prediction)
-    average_predictions = combine_predictions(predictions)
-    return average_predictions
-
-
 def threshold_predictions(predictions: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
     predictions = predictions > threshold
     return predictions
@@ -126,17 +122,19 @@ def threshold_multiple_predictions(predictions: list[torch.Tensor], threshold: f
 
 
 def predict_strategy_any(threshold_predictions: torch.Tensor) -> torch.Tensor:
-    prediction = torch.any(threshold_predictions, dim=0, keepdim=True)
+    prediction = torch.any(threshold_predictions, dim=0)
     return prediction
 
 
-def predict_multiple_strategy_any(predictions: list[torch.Tensor]) -> list[torch.Tensor]:
+def predict_multiple_strategy_any(predictions: list[torch.Tensor]) -> torch.Tensor:
     predictions = [predict_strategy_any(pred) for pred in predictions]
+    predictions = torch.stack(predictions, dim=0)
     return predictions
 
 
-def get_predictions_sdg_clf(dataset_name: str, split: str, model_weights: list[str], model_types: list[str],
-                            save_predictions: bool = True, overwrite: bool = False) -> list[list[torch.Tensor]]:
+def get_raw_predictions_sdg_clf(dataset_name: str, split: str, model_weights: list[str],
+                                save_predictions: bool = True, overwrite: bool = False) -> list[list[torch.Tensor]]:
+    model_types = modelling.get_model_types(model_weights)
     # the number of models in the ensemble
     n_models = len(model_types)
     prediction_paths = utils.get_prediction_paths(dataset_name, split, model_weights)
@@ -153,9 +151,7 @@ def get_predictions_sdg_clf(dataset_name: str, split: str, model_weights: list[s
     for i in range(len(predictions)):
         if predictions[i] is None:
             # load the model
-            transformer_model = modelling.load_model(model_types[i], model_weights[i])
-            tokenizer = utils.get_tokenizer(model_types[i])
-            transformer = base.Transformer(transformer_model, tokenizer)
+            transformer = base.get_transformer(model_types[i], model_weights[i])
             predictions[i] = transformer.predict_multiple_samples_no_threshold(samples)
 
             if save_predictions:
@@ -164,7 +160,8 @@ def get_predictions_sdg_clf(dataset_name: str, split: str, model_weights: list[s
     return predictions
 
 
-def get_predictions_other(method: str, dataset_name: str, split:str, save_predictions: bool = True, overwrite: bool = False) -> list[torch.Tensor]:
+def get_predictions_other(method: str, dataset_name: str, split: str, save_predictions: bool = True,
+                          overwrite: bool = False) -> list[torch.Tensor]:
     prediction_paths = utils.get_prediction_paths(method, dataset_name, split)
     if not overwrite:
         predictions = utils.load_predictions(prediction_paths)

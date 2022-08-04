@@ -1,4 +1,5 @@
 import os
+import numpy.typing as npt
 import pickle
 import random
 from typing import Union
@@ -216,7 +217,7 @@ def load_predictions(prediction_paths: Union[list[str], str]) -> Union[list[torc
     return predictions
 
 
-def print_prediction(prediction: torch.Tensor) -> None:
+def print_prediction(prediction: npt.NDArray) -> None:
     print("SDGs found in text")
     print("--------------------")
     sdg_dict = {1: "No Poverty", 2: "Zero Hunger", 3: "Good Health and Well-Being", 4: "Quality Education",
@@ -225,9 +226,9 @@ def print_prediction(prediction: torch.Tensor) -> None:
                 10: "Reduced Inequalities", 11: "Sustainable Cities and Communities",
                 12: "Responsible Consumption and Production", 13: "Climate Action", 14: "Life Below Water",
                 15: "Life On Land", 16: "Peace, Justice and Strong Institutions", 17: "Partnerships for the Goals"}
-    if not torch.any(prediction):
+    if not np.any(prediction):
         print("No SDGs found")
     else:
         for i in range(17):
-            if prediction[i].item() is True:
+            if prediction[i] == 1:
                 print(f"    SDG {i + 1}: {sdg_dict[i + 1]}")

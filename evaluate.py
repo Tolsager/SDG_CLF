@@ -9,15 +9,14 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
          save_predictions: bool = True, overwrite: bool = False, threshold: float = 0.5):
     os.chdir(os.path.dirname(__file__))
 
-    predictions = evaluation.get_predictions_sdg_clf(dataset_name, split, model_weights, model_types, save_predictions,
-                                                     overwrite)
+    predictions = evaluation.get_raw_predictions_sdg_clf(dataset_name, split, model_weights, save_predictions,
+                                                         overwrite)
     if len(model_weights) > 1:
         predictions = predictions[0]
     else:
         predictions = evaluation.combine_multiple_predictions(predictions)
     predictions = evaluation.threshold_multiple_predictions(predictions, threshold)
     predictions = evaluation.predict_multiple_strategy_any(predictions)
-    predictions = torch.concat(predictions, dim=0)
     df = dataset_utils.get_processed_df(dataset_name, split)
     labels = dataset_utils.get_labels_tensor(df)
 

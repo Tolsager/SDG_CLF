@@ -9,8 +9,8 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
         raise ValueError("The OSDG dataset only has a single label for each sample so no threshold is used")
     # load predictions that already exist if overwrite is False
 
-    predictions = evaluation.get_predictions_sdg_clf(dataset_name, split, model_weights, model_types, save_predictions,
-                                                     overwrite)
+    predictions = evaluation.get_raw_predictions_sdg_clf(dataset_name, split, model_weights, model_types, save_predictions,
+                                                         overwrite)
     df = dataset_utils.get_processed_df(dataset_name, split)
     labels = dataset_utils.get_labels_tensor(df)
 

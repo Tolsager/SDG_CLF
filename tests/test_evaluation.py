@@ -58,10 +58,10 @@ def test_predict_multiple_samples_aurora():
 def test_get_osdg_predictions_new_api():
     text = [
         "For those who work, having a job does not guarantee a decent living. In fact, 8 per cent of employed workers and their families worldwide lived in extreme poverty in 2018. One out of five children live in extreme poverty. Ensuring social protection for all children and other vulnerable groups is critical to reduce poverty."]
-    prediction = evaluation.get_osdg_predictions_new_api(text)
+    prediction = evaluation.predict_multiple_samples_osdg_new_api(text)
     print(prediction)
     assert prediction.shape == (1, 17)
     texts = text + ["At the same time, a profound change of the global food and agriculture system is needed if we are to nourish the more than 690 million people who are hungry today – and the additional 2 billion people the world will have by 2050. Increasing agricultural productivity and sustainable food production are crucial to help alleviate the perils of hunger"]
-    predictions = evaluation.get_osdg_predictions_new_api(texts)
+    predictions = evaluation.predict_multiple_samples_osdg_new_api(texts)
     print(predictions)
     assert predictions.shape == (2, 17)

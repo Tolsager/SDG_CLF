@@ -4,19 +4,18 @@ import os
 from sdg_clf import utils, evaluation, dataset_utils
 
 
-def main(method: str, dataset_name: str, split: str, save_predictions: bool = True, overwrite: bool = False,
-         api: str = "stable"):
+def main(method: str, dataset_name: str, split: str, save_predictions: bool = True, overwrite: bool = False,):
     """
+    Evaluate a method on a dataset.
 
     Args:
-        method:
-        dataset_name:
-        split:
-        save_predictions:
-        overwrite:
-        api: {"stable", "new"}. Only used when method is "osdg".
-
+        method: {"osdg_stable", "osdg_new", "aurora"}. the method to use
+        dataset_name: the name of the dataset
+        split: the split to use
+        save_predictions: whether to save the predictions
+        overwrite: whether to overwrite the predictions if they already exist
     Returns:
+        None
 
     """
     os.chdir(os.path.dirname(__file__))
@@ -26,6 +25,8 @@ def main(method: str, dataset_name: str, split: str, save_predictions: bool = Tr
     df = dataset_utils.get_processed_df(dataset_name, split)
     labels = dataset_utils.get_labels_tensor(df)
 
+    # compute metrics
+    # TODO: change the metrics to the simplified pytorch-lightning version
     metrics = utils.get_metrics()
     utils.update_metrics(metrics, {"label": labels, "prediction": predictions})
     metrics_values = utils.compute_metrics(metrics)

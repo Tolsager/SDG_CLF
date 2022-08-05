@@ -188,9 +188,9 @@ def move_to(obj: Union[torch.Tensor, dict, list], device: str):
         raise TypeError("Invalid type for move_to")
 
 
-def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str] = None, method: str = None) -> Union[
-    list[str], str]:
-    if method == "osdg" or method == "aurora":
+def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str] = None, method: str = None,
+                         ) -> Union[list[str], str]:
+    if method == "osdg_stable" or method == "osdg_new" or method == "aurora":
         prediction_paths = f"predictions/{dataset_name}/{split}/{method}.pkl"
     else:
         # remove potential file extension

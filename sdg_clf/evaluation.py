@@ -20,48 +20,6 @@ except ImportError:
     new_ip = ""
 
 
-def predict_sample_osdg_stable_api(text: str) -> Union[torch.Tensor, None]:
-    """
-    Predict the SDG classification for a given text using the OSDG server.
-    Args:
-        text: the text to predict on
-
-    Returns:
-        the prediction from the server as a tensor of shape (17)
-
-    """
-    osdg_prediction = request_osdg_prediction(text)
-    if "ERROR" in osdg_prediction:
-        print("OSDG unable to predict")
-        print("The following error message was received:")
-        print(f"\t {osdg_prediction}")
-        print()
-        return None
-    else:
-        prediction_tensor = process_osdg_prediction(osdg_prediction)
-
-    return prediction_tensor
-
-
-def predict_multiple_samples_osdg_stable_api(samples: list[str]) -> list[torch.Tensor]:
-    """
-    Predict on multiple samples
-
-    Args:
-        samples: texts to be predicted on
-        ip: ip address of the server
-
-    Returns:
-        predictions
-
-    """
-    predictions = []
-    for sample in samples:
-        prediction = predict_sample_osdg_stable_api(sample)
-        predictions.append(prediction)
-    return predictions
-
-
 def request_osdg_prediction_stable_api(text: str) -> str:
     """
     Requests the prediction from the OSDG server.
@@ -97,6 +55,48 @@ def process_osdg_prediction_stable_api(osdg_prediction: str) -> torch.Tensor:
     return prediction_tensor
 
 
+def predict_sample_osdg_stable_api(text: str) -> Union[torch.Tensor, None]:
+    """
+    Predict the SDG classification for a given text using the OSDG server.
+    Args:
+        text: the text to predict on
+
+    Returns:
+        the prediction from the server as a tensor of shape (17)
+
+    """
+    osdg_prediction = request_osdg_prediction_stable_api(text)
+    if "ERROR" in osdg_prediction:
+        print("OSDG unable to predict")
+        print("The following error message was received:")
+        print(f"\t {osdg_prediction}")
+        print()
+        return None
+    else:
+        prediction_tensor = process_osdg_prediction_stable_api(osdg_prediction)
+
+    return prediction_tensor
+
+
+def predict_multiple_samples_osdg_stable_api(samples: list[str]) -> list[torch.Tensor]:
+    """
+    Predict on multiple samples
+
+    Args:
+        samples: texts to be predicted on
+        ip: ip address of the server
+
+    Returns:
+        predictions
+
+    """
+    predictions = []
+    for sample in samples:
+        prediction = predict_sample_osdg_stable_api(sample)
+        predictions.append(prediction)
+    return predictions
+
+
 def request_osdg_predictions_new_api(texts: list[str]) -> list[str]:
     """
     Requests the predictions from the OSDG server and returns the task ids of all the predictions
@@ -117,7 +117,7 @@ def request_osdg_predictions_new_api(texts: list[str]) -> list[str]:
     return task_ids
 
 
-def get_raw_osdg_predictions_new_api(task_ids: list[str]) -> list[list[list[str, int]]]:
+def retrieve_raw_osdg_predictions_new_api(task_ids: list[str]) -> list[list[list[str, int]]]:
     """
     retrieves the predictions from the OSDG server
     Args:
@@ -142,7 +142,7 @@ def get_raw_osdg_predictions_new_api(task_ids: list[str]) -> list[list[list[str,
     return predictions
 
 
-def process_raw_osdg_predictions_new_api(raw_predictions: list[list[list[str, int]]]) -> npt.NDArray:
+def process_raw_osdg_predictions_new_api(raw_predictions: list[list[list[str, int]]]) -> torch.Tensor:
     """
     Processes the raw predictions from the OSDG server into a binary numpy array
     of shape (n, 17) with n being the number of samples
@@ -155,19 +155,19 @@ def process_raw_osdg_predictions_new_api(raw_predictions: list[list[list[str, in
     """
     predictions = []
     for pred in raw_predictions:
-        new_pred = np.zeros(17)
+        new_pred = torch.zeros(17)
         for sdg in pred:
             sdg_id = int(sdg[0][4:]) - 1
             new_pred[sdg_id] = 1
         predictions.append(new_pred)
     # stack the predictions
-    predictions = np.stack(predictions, axis=0)
+    predictions = torch.stack(predictions, dim=0)
     return predictions
 
 
-def get_osdg_predictions_new_api(texts: list[str]) -> npt.NDArray:
+def predict_multiple_samples_osdg_new_api(texts: list[str]) -> torch.Tensor:
     task_ids = request_osdg_predictions_new_api(texts)
-    raw_predictions = get_raw_osdg_predictions_new_api(task_ids)
+    raw_predictions = retrieve_raw_osdg_predictions_new_api(task_ids)
     predictions = process_raw_osdg_predictions_new_api(raw_predictions)
     return predictions
 
@@ -239,9 +239,19 @@ def get_raw_predictions_sdg_clf(dataset_name: str, split: str, model_weights: li
 
 def get_predictions_other(method: str, dataset_name: str, split: str, save_predictions: bool = True,
                           overwrite: bool = False) -> list[torch.Tensor]:
-    prediction_paths = utils.get_prediction_paths(method=method, dataset_name=dataset_name, split=split)
+    """
+    Get the predictions for the other methods
+
+    Args:
+        method: {"osdg_stable", "osdg_new", "aurora"}. the method to use
+        dataset_name: the name of the dataset
+        split: the split to use
+        save_predictions: whether to save the predictions
+        overwrite: whether to overwrite the predictions if they already exist
+    """
+    predictions_path = utils.get_prediction_paths(method=method, dataset_name=dataset_name, split=split)
     if not overwrite:
-        predictions = utils.load_predictions(prediction_paths)
+        predictions = utils.load_predictions(predictions_path)
     else:
         predictions = None
 
@@ -255,12 +265,12 @@ def get_predictions_other(method: str, dataset_name: str, split: str, save_predi
         if method == "osdg_stable":
             predictions = predict_multiple_samples_osdg_stable_api(samples)
         elif method == "osdg_new":
-            predictions = get_osdg_predictions_new_api(samples)
+            predictions = predict_multiple_samples_osdg_new_api(samples)
         elif method == "aurora":
             predictions = predict_multiple_samples_aurora(samples)
 
         if save_predictions:
-            utils.save_pickle(prediction_paths, predictions)
+            utils.save_pickle(predictions_path, predictions)
     return predictions
 
 

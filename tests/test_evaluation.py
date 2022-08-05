@@ -2,6 +2,8 @@ import torch
 from sdg_clf import evaluation
 import os
 
+os.chdir("..")
+
 
 def test_get_optimal_threshold():
     predictions = [torch.ones((2, 17)), torch.ones((1, 17))]
@@ -26,9 +28,9 @@ class TestOSDG:
         """
 
     def test_predict_sample_osdg(self):
-        prediction = evaluation.predict_sample_osdg(self.invalid_text)
+        prediction = evaluation.predict_sample_osdg_stable_api(self.invalid_text)
         assert prediction is None
-        prediction = evaluation.predict_sample_osdg(self.valid_text)
+        prediction = evaluation.predict_sample_osdg_stable_api(self.valid_text)
         assert prediction.shape[0] == 17
 
     def test_predict_multiple_samples_osdg(self):
@@ -48,7 +50,18 @@ class TestOSDG:
 
 def test_predict_multiple_samples_aurora():
     # change the working directory
-    os.chdir("..")
     samples = ["This is a test", "This is another test"]
     predictions = evaluation.predict_multiple_samples_aurora(samples)
+    assert predictions.shape == (2, 17)
+
+
+def test_get_osdg_predictions_new_api():
+    text = [
+        "For those who work, having a job does not guarantee a decent living. In fact, 8 per cent of employed workers and their families worldwide lived in extreme poverty in 2018. One out of five children live in extreme poverty. Ensuring social protection for all children and other vulnerable groups is critical to reduce poverty."]
+    prediction = evaluation.get_osdg_predictions_new_api(text)
+    print(prediction)
+    assert prediction.shape == (1, 17)
+    texts = text + ["At the same time, a profound change of the global food and agriculture system is needed if we are to nourish the more than 690 million people who are hungry today – and the additional 2 billion people the world will have by 2050. Increasing agricultural productivity and sustainable food production are crucial to help alleviate the perils of hunger"]
+    predictions = evaluation.get_osdg_predictions_new_api(texts)
+    print(predictions)
     assert predictions.shape == (2, 17)

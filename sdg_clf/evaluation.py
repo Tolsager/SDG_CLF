@@ -1,4 +1,8 @@
 import ast
+import numpy as np
+import numpy.typing as npt
+import time
+import json
 import os.path
 from typing import Union
 
@@ -8,26 +12,25 @@ import torchmetrics
 
 from sdg_clf import base, utils, dataset_utils, aurora_mbert, modelling
 
-
 try:
-    from sdg_clf import osdg_ip
+    from sdg_clf.osdg_ip import stable_ip, new_ip
 except ImportError:
     # make sure the evaluation module can run if the osdg_ip module is not available
-    osdg_ip = None
+    stable_ip = ""
+    new_ip = ""
 
 
-def predict_sample_osdg(text: str, ip: str = osdg_ip.ip1) -> Union[torch.Tensor, None]:
+def predict_sample_osdg_stable_api(text: str) -> Union[torch.Tensor, None]:
     """
     Predict the SDG classification for a given text using the OSDG server.
     Args:
         text: the text to predict on
-        ip: the ip address of the OSDG server
 
     Returns:
         the prediction from the server as a tensor of shape (17)
 
     """
-    osdg_prediction = request_osdg_prediction(text, ip=ip)
+    osdg_prediction = request_osdg_prediction(text)
     if "ERROR" in osdg_prediction:
         print("OSDG unable to predict")
         print("The following error message was received:")
@@ -40,7 +43,7 @@ def predict_sample_osdg(text: str, ip: str = osdg_ip.ip1) -> Union[torch.Tensor,
     return prediction_tensor
 
 
-def predict_multiple_samples_osdg(samples: list[str], ip: str = osdg_ip.ip1) -> list[torch.Tensor]:
+def predict_multiple_samples_osdg_stable_api(samples: list[str]) -> list[torch.Tensor]:
     """
     Predict on multiple samples
 
@@ -54,29 +57,28 @@ def predict_multiple_samples_osdg(samples: list[str], ip: str = osdg_ip.ip1) -> 
     """
     predictions = []
     for sample in samples:
-        prediction = predict_sample_osdg(sample, ip=ip)
+        prediction = predict_sample_osdg_stable_api(sample)
         predictions.append(prediction)
     return predictions
 
 
-def request_osdg_prediction(text: str, ip: str = osdg_ip.ip1) -> str:
+def request_osdg_prediction_stable_api(text: str) -> str:
     """
     Requests the prediction from the OSDG server.
     Args:
         text: text to predict on
-        ip: ip address of the server
 
     Returns:
         unprocessed prediction from the server as a string
 
     """
     data = {"query": text}
-    osdg_prediction = requests.post(ip, data=data)
+    osdg_prediction = requests.post(stable_ip, data=data)
     osdg_prediction = osdg_prediction.text
     return osdg_prediction
 
 
-def process_osdg_prediction(osdg_prediction: str) -> torch.Tensor:
+def process_osdg_prediction_stable_api(osdg_prediction: str) -> torch.Tensor:
     """
     Processes the prediction from the OSDG server.
     Args:
@@ -93,6 +95,81 @@ def process_osdg_prediction(osdg_prediction: str) -> torch.Tensor:
         prediction_list[sdg_pred] = 1
     prediction_tensor = torch.tensor(prediction_list)
     return prediction_tensor
+
+
+def request_osdg_predictions_new_api(texts: list[str]) -> list[str]:
+    """
+    Requests the predictions from the OSDG server and returns the task ids of all the predictions
+    Args:
+        texts: text to predict on
+
+    Returns:
+        task_ids
+
+    """
+    url = new_ip + "text-upload"
+    task_ids = []
+    for text in texts:
+        data = {"text": text, "token": "dtAAymjvxzKXyTNqNY2z"}
+        result = requests.post(url, data=data)
+        task_id = json.loads(result.text)
+        task_ids.append(task_id)
+    return task_ids
+
+
+def get_raw_osdg_predictions_new_api(task_ids: list[str]) -> list[list[list[str, int]]]:
+    """
+    retrieves the predictions from the OSDG server
+    Args:
+        task_ids: the ids of the texts to retrieve the predictions for
+
+    Returns:
+        the raw predictions
+
+    """
+    url = new_ip + "retrieve-results"
+    predictions = []
+    for task_id in task_ids:
+        while True:
+            data = {"task_id": task_id, "token": "dtAAymjvxzKXyTNqNY2z"}
+            result = requests.post(url, data=data)
+            res = json.loads(result.text)
+            if res["status"] == "Error: Could not extract text":
+                time.sleep(2)
+            else:
+                predictions.append(res["document_sdg_labels"])
+                break
+    return predictions
+
+
+def process_raw_osdg_predictions_new_api(raw_predictions: list[list[list[str, int]]]) -> npt.NDArray:
+    """
+    Processes the raw predictions from the OSDG server into a binary numpy array
+    of shape (n, 17) with n being the number of samples
+    Args:
+        raw_predictions: the predictions from the server
+
+    Returns:
+        binary np array
+
+    """
+    predictions = []
+    for pred in raw_predictions:
+        new_pred = np.zeros(17)
+        for sdg in pred:
+            sdg_id = int(sdg[0][4:]) - 1
+            new_pred[sdg_id] = 1
+        predictions.append(new_pred)
+    # stack the predictions
+    predictions = np.stack(predictions, axis=0)
+    return predictions
+
+
+def get_osdg_predictions_new_api(texts: list[str]) -> npt.NDArray:
+    task_ids = request_osdg_predictions_new_api(texts)
+    raw_predictions = get_raw_osdg_predictions_new_api(task_ids)
+    predictions = process_raw_osdg_predictions_new_api(raw_predictions)
+    return predictions
 
 
 def predict_multiple_samples_aurora(samples: list[str]) -> torch.Tensor:
@@ -162,7 +239,7 @@ def get_raw_predictions_sdg_clf(dataset_name: str, split: str, model_weights: li
 
 def get_predictions_other(method: str, dataset_name: str, split: str, save_predictions: bool = True,
                           overwrite: bool = False) -> list[torch.Tensor]:
-    prediction_paths = utils.get_prediction_paths(method, dataset_name, split)
+    prediction_paths = utils.get_prediction_paths(method=method, dataset_name=dataset_name, split=split)
     if not overwrite:
         predictions = utils.load_predictions(prediction_paths)
     else:
@@ -175,8 +252,10 @@ def get_predictions_other(method: str, dataset_name: str, split: str, save_predi
     if predictions is None:
         # get the text column of the df as a list of strings
         samples = df["text"].tolist()
-        if method == "osdg":
-            predictions = predict_multiple_samples_osdg(samples)
+        if method == "osdg_stable":
+            predictions = predict_multiple_samples_osdg_stable_api(samples)
+        elif method == "osdg_new":
+            predictions = get_osdg_predictions_new_api(samples)
         elif method == "aurora":
             predictions = predict_multiple_samples_aurora(samples)
 

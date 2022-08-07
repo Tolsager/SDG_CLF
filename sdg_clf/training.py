@@ -530,7 +530,7 @@ class SDGTrainer(Trainer):
         prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
 
-
+# TODO add hyper parameters for the model and fix issues with training and validation step
 class LitSDG(pl.LightningModule):
     def __init__(self, model: transformers.PreTrainedModel):
         super().__init__()
@@ -563,3 +563,6 @@ class LitSDG(pl.LightningModule):
         utils.update_metrics_pl(metrics, preds, labels)
         self.log("val_loss", loss)
         self.log_dict(metrics)
+
+    def configure_optimizers(self):
+        return torch.optim.AdamW(self.parameters(), lr=3e-6)

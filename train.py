@@ -3,6 +3,7 @@ import dataclasses
 import os
 
 import torch
+import pytorch_lightning as pl
 
 import wandb
 from api_key import key
@@ -29,6 +30,7 @@ def main(
         training_parameters: TrainingParameters = TrainingParameters(),
         tags: list = None,
         notes: str = "Evaluating baseline model",
+        frac: float = 1.0,
 ):
     """main() completes multi_label learning loop for one ROBERTA model using one model.
     Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
@@ -60,29 +62,46 @@ def main(
     # Setup correct directory and seed
     os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
-    model = modelling.load_model(model_type=model_type)
-
-    # Set loss criterion for trainer
-    criterion = torch.nn.BCEWithLogitsLoss()
+    transformer = modelling.load_model(model_type=model_type)
 
     dl_train = dataset_utils.get_dataloader("twitter", model_type, "train")
     dl_val = dataset_utils.get_dataloader("twitter", model_type, "val")
 
     # get metrics
-    metrics = utils.get_metrics()
-    trainer = training.SDGTrainer(
-        model=model,
-        criterion=criterion,
-        call_tqdm=call_tqdm,
-        gpu_index=0,
-        metrics=metrics,
-        log=log,
-        save_file_name=save_file_name,
-        save_model=save_model,
-        save_metric="f1",
-        hypers=dataclasses.asdict(training_parameters),
+
+    trainer = pl.Trainer(
+        accelerator="gpu",
+        devices=1,
+        fast_dev_run=True,
+        precision=16,
+        limit_train_batches=frac,
+        min_epochs=training_parameters.epochs // 2,
+        max_epochs=training_parameters.epochs,
+        # logger=...,
+        # resume_from_checkpoint=...,
+        # weights_save_path=...,
+        # callbacks=...,
+        # enable_checkpointing=...,
     )
-    trainer.train(dl_train, dl_val)
+    LitModel = training.LitSDG(model=transformer)
+
+
+    trainer.fit(LitModel, train_dataloaders=dl_train, val_dataloaders=dl_val)
+
+    metrics = utils.get_metrics()
+    # trainer = training.SDGTrainer(
+    #     model=model,
+    #     criterion=criterion,
+    #     call_tqdm=call_tqdm,
+    #     gpu_index=0,
+    #     metrics=metrics,
+    #     log=log,
+    #     save_file_name=save_file_name,
+    #     save_model=save_model,
+    #     save_metric="f1",
+    #     hypers=dataclasses.asdict(training_parameters),
+    # )
+    # trainer.train(dl_train, dl_val)
 
 
 if __name__ == "__main__":
@@ -97,6 +116,7 @@ if __name__ == "__main__":
     parser.add_argument("-nt", "--notes", help="notes for a specific experiment run", type=str,
                         default="run with base parameters")
     parser.add_argument("-mt", "--model_type", help="specify model type to train", type=str, default="roberta-base")
+    parser.add_argument("-f", "--frac", help='fraction of training data to use for training', type=float, default=1.0)
     args = parser.parse_args()
     main(
         call_tqdm=True,

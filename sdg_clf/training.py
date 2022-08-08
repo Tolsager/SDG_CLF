@@ -1,24 +1,13 @@
-import os
-from datetime import datetime
-from typing import Callable, Union
-
-import numpy as np
-import torch
-import transformers
-import wandb
-from tqdm import tqdm, trange
-import torchmetrics
-
-from sdg_clf import utils, base
-
 import pytorch_lightning as pl
+import torch
+import torchmetrics
+import transformers
+
+from sdg_clf import base
 
 
-
-
-# TODO add hyper parameters for the module
 class LitSDG(pl.LightningModule):
-    def __init__(self, model: transformers.PreTrainedModel, hparams: base.HParams):
+    def __init__(self, model: transformers.AutoModelForSequenceClassification, hparams: base.HParams):
         super().__init__()
         self.model = model
         self.HParams = hparams
@@ -33,11 +22,14 @@ class LitSDG(pl.LightningModule):
         self.macro_f1 = torchmetrics.F1Score(num_classes=17, multiclass=False, average="macro")
         self.sigmoid = torch.nn.Sigmoid()
 
+    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+        return self.model(input_ids, attention_mask=attention_mask).logits
+
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["label"]
-        model_outputs = self.model(input_ids, attention_mask=attention_mask).logits
+        model_outputs = self(input_ids, attention_mask=attention_mask)
         loss = self.criterion(model_outputs, labels.float())
         preds = self.sigmoid(model_outputs)
         self.accuracy(preds, labels)
@@ -47,7 +39,8 @@ class LitSDG(pl.LightningModule):
         self.macro_precision(preds, labels)
         self.macro_recall(preds, labels)
         self.macro_f1(preds, labels)
-        metrics_dict = {"train_loss": loss, "train_accuracy": self.accuracy, "train_micro_precision": self.micro_precision,
+        metrics_dict = {"train_loss": loss, "train_accuracy": self.accuracy,
+                        "train_micro_precision": self.micro_precision,
                         "train_micro_recall": self.micro_recall,
                         "train_micro_f1": self.micro_f1, "train_macro_precision": self.macro_precision,
                         "train_macro_recall": self.macro_recall, "train_macro_f1": self.macro_f1}
@@ -59,7 +52,7 @@ class LitSDG(pl.LightningModule):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["label"]
-        model_outputs = self.model(input_ids, attention_mask=attention_mask).logits
+        model_outputs = self(input_ids, attention_mask=attention_mask)
         loss = self.criterion(model_outputs, labels.float())
         preds = self.sigmoid(model_outputs)
         self.accuracy(preds, labels)

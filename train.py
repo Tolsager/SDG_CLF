@@ -1,4 +1,5 @@
 import argparse
+import dataclasses
 import os
 
 import pytorch_lightning as pl
@@ -61,7 +62,7 @@ def main(
                                                        save_top_k=1 if not debug else 0)
     logger = pl.loggers.wandb.WandbLogger(project="sdg_clf", tags=tags, name=save_filename, notes=notes,
                                           offline=debug)
-    logger.log_hyperparams(hparams.asdict() | {"save_filename": save_filename})
+    logger.log_hyperparams(dataclasses.asdict(hparams) | {"save_filename": save_filename})
     callbacks = [checkpoint_callback]
 
     if debug:

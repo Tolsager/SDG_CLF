@@ -50,8 +50,8 @@ def main(
     utils.seed_everything(seed)
     model = modelling.load_model(model_type=model_type)
 
-    dl_train = dataset_utils.get_dataloader("twitter", model_type, "train")
-    dl_val = dataset_utils.get_dataloader("twitter", model_type, "val")
+    dl_train = dataset_utils.get_dataloader("twitter", model_type, "train", batch_size=hparams.batch_size)
+    dl_val = dataset_utils.get_dataloader("twitter", model_type, "val", batch_size=hparams.batch_size)
 
     # set up model checkpoint callback
     save_dirpath = get_save_dirpath(model_type)

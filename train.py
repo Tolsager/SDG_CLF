@@ -10,14 +10,17 @@ from sdg_clf import dataset_utils
 from sdg_clf import modelling
 from sdg_clf import training
 from sdg_clf import utils
+from sdg_clf import base
 
 
-@dataclasses.dataclass
-class TrainingParameters:
-    learning_rate: float = 3e-5
-    batch_size: int = 32
-    epochs: int = 2
-    weight_decay: float = 1e-2
+def get_save_dirpath(model_type: str):
+    return os.path.join("finetuned_models", os.path.dirname(model_type))
+
+
+def get_save_filename(model_type: str):
+    model_number = modelling.get_next_model_number(model_type)
+    save_filename = os.path.basename(model_type) + f"_model{model_number}"
+    return save_filename
 
 
 def main(
@@ -48,8 +51,6 @@ def main(
         save_metric (str, optional): Determines the metric to compare between models for updating. Defaults to "accuracy".
     """
     tags = [model_type] + tags if tags is not None else [model_type]
-    if not log:
-        os.environ["WANDB_MODE"] = "offline"
     # Setup W and B project log
     os.environ["WANDB_API_KEY"] = key
     # run = wandb.init(project="sdg_clf", config=dataclasses.asdict(HParams), tags=tags, notes=notes)
@@ -62,7 +63,14 @@ def main(
     dl_train = dataset_utils.get_dataloader("twitter", model_type, "train")
     dl_val = dataset_utils.get_dataloader("twitter", model_type, "val")
 
-    # get metrics
+    # set up model checkpoint callback
+    save_dirpath = get_save_dirpath(model_type)
+    save_filename = get_save_filename(model_type)
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=save_dirpath, filename=save_filename,
+                                                       monitor="val_micro_f1", mode="max")
+    logger = pl.loggers.wandb.WandbLogger(project="sdg_clf", tags=tags, name=save_filename, notes=notes,
+                                          offline=not log)
+    callbacks = [checkpoint_callback]
 
     trainer = pl.Trainer(
         accelerator="gpu",
@@ -81,7 +89,6 @@ def main(
         # enable_checkpointing=...,
     )
     LitModel = training.LitSDG(model=transformer, hparams=HParams)
-
 
     trainer.fit(LitModel, train_dataloaders=dl_train, val_dataloaders=dl_val)
 

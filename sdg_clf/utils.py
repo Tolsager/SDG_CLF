@@ -145,6 +145,11 @@ def get_metrics_pl():
     return metrics
 
 
+def set_metrics_pl_to_device(metrics: dict[str, torchmetrics.Metric], device: str):
+    for metric in metrics.values():
+        metric.to(device)
+
+
 def add_suffix_to_keys(dictionary: dict[str, Any], suffix: str) -> dict[str, Any]:
     """
     Adds suffix to all keys in dictionary

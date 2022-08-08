@@ -2,7 +2,7 @@ import torch
 import transformers
 from sdg_clf import utils, modelling
 import numpy as np
-
+from dataclasses import dataclass
 
 # transformer class with a model and a tokenizer
 class Transformer:

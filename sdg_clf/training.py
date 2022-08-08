@@ -530,11 +530,12 @@ class SDGTrainer(Trainer):
         prediction = self.long_text_step(model_outputs)
         return prediction.tolist()
 
-# TODO add hyper parameters for the model and fix issues with training and validation step
+# TODO add hyper parameters for the module
 class LitSDG(pl.LightningModule):
     def __init__(self, model: transformers.PreTrainedModel):
         super().__init__()
         self.model = model
+        self.HParams = hparams
         self.criterion = torch.nn.BCEWithLogitsLoss()
         self.metrics = utils.get_metrics_pl()
         self.sigmoid = torch.nn.Sigmoid()
@@ -544,7 +545,7 @@ class LitSDG(pl.LightningModule):
         attention_mask = batch["attention_mask"]
         labels = batch["label"]
         model_outputs = self.model(input_ids, attention_mask=attention_mask).logits
-        loss = self.criterion(model_outputs, labels)
+        loss = self.criterion(model_outputs, labels.float())
         preds = self.sigmoid(model_outputs)
         metrics = utils.add_suffix_to_keys(self.metrics, "train")
         utils.update_metrics_pl(metrics, preds, labels)
@@ -557,12 +558,20 @@ class LitSDG(pl.LightningModule):
         attention_mask = batch["attention_mask"]
         labels = batch["label"]
         model_outputs = self.model(input_ids, attention_mask=attention_mask).logits
-        loss = self.criterion(model_outputs, labels)
+        loss = self.criterion(model_outputs, labels.float())
         preds = self.sigmoid(model_outputs)
-        metrics = utils.add_suffix_to_keys(self.metrics, "val")
-        utils.update_metrics_pl(metrics, preds, labels)
-        self.log("val_loss", loss)
-        self.log_dict(metrics)
+        self.accuracy(preds, labels)
+        self.micro_precision(preds, labels)
+        self.micro_recall(preds, labels)
+        self.micro_f1(preds, labels)
+        self.macro_precision(preds, labels)
+        self.macro_recall(preds, labels)
+        self.macro_f1(preds, labels)
+        metrics_dict = {"val_loss": loss, "val_accuracy": self.accuracy, "val_micro_precision": self.micro_precision,
+                        "val_micro_recall": self.micro_recall,
+                        "val_micro_f1": self.micro_f1, "val_macro_precision": self.macro_precision,
+                        "val_macro_recall": self.macro_recall, "val_macro_f1": self.macro_f1}
+        self.log_dict(metrics_dict)
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=3e-6)

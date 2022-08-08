@@ -2,7 +2,6 @@ import argparse
 import dataclasses
 import os
 
-import torch
 import pytorch_lightning as pl
 
 import wandb
@@ -27,7 +26,7 @@ def main(
         model_type: str = "roberta-base",
         log: bool = True,
         save_model: bool = True,
-        training_parameters: TrainingParameters = TrainingParameters(),
+        HParams: base.HParams = base.HParams(),
         tags: list = None,
         notes: str = "Evaluating baseline model",
         frac: float = 1.0,
@@ -53,11 +52,7 @@ def main(
         os.environ["WANDB_MODE"] = "offline"
     # Setup W and B project log
     os.environ["WANDB_API_KEY"] = key
-    run = wandb.init(project="sdg_clf", config=dataclasses.asdict(training_parameters), tags=tags, notes=notes)
-    if not log:
-        save_file_name = "model"
-    else:
-        save_file_name = run.name
+    # run = wandb.init(project="sdg_clf", config=dataclasses.asdict(HParams), tags=tags, notes=notes)
 
     # Setup correct directory and seed
     os.chdir(os.path.dirname(__file__))
@@ -72,41 +67,28 @@ def main(
     trainer = pl.Trainer(
         accelerator="gpu",
         devices=1,
-        fast_dev_run=True,
+        fast_dev_run=False,
         precision=16,
-        limit_train_batches=frac,
-        min_epochs=training_parameters.epochs // 2,
-        max_epochs=training_parameters.epochs,
-        # logger=...,
+        limit_train_batches=2,
+        limit_val_batches=10,
+        min_epochs=HParams.max_epochs // 2,
+        max_epochs=HParams.max_epochs,
+        callbacks=callbacks,
+        logger=logger,
         # resume_from_checkpoint=...,
         # weights_save_path=...,
         # callbacks=...,
         # enable_checkpointing=...,
     )
-    LitModel = training.LitSDG(model=transformer)
+    LitModel = training.LitSDG(model=transformer, hparams=HParams)
 
 
     trainer.fit(LitModel, train_dataloaders=dl_train, val_dataloaders=dl_val)
 
-    metrics = utils.get_metrics()
-    # trainer = training.SDGTrainer(
-    #     model=model,
-    #     criterion=criterion,
-    #     call_tqdm=call_tqdm,
-    #     gpu_index=0,
-    #     metrics=metrics,
-    #     log=log,
-    #     save_file_name=save_file_name,
-    #     save_model=save_model,
-    #     save_metric="f1",
-    #     hypers=dataclasses.asdict(training_parameters),
-    # )
-    # trainer.train(dl_train, dl_val)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--batch_size", help="number of batches sent to model", type=int, default=32)
+    parser.add_argument("-b", "--batch_size", help="number of batches sent to model", type=int, default=8)
     parser.add_argument("-l", "--log", help="log results to weights and biases", action='store_true', default=False)
     parser.add_argument("-s", "--save", help="save models during training", action="store_true", default=True)
     parser.add_argument("-e", "--epochs", help="number of epochs to train model", type=int, default=2)
@@ -121,9 +103,9 @@ if __name__ == "__main__":
     main(
         call_tqdm=True,
         model_type=args.model_type,
-        log=args.log,
+        log=True,
         save_model=args.save,
-        training_parameters=TrainingParameters(args.learning_rate, args.batch_size, args.epochs, args.weight_decay),
+        HParams=base.HParams(),
         tags=args.tags,
         notes=args.notes,
     )

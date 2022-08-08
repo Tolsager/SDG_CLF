@@ -56,7 +56,7 @@ def get_next_model_number(model_type: str) -> int:
     else:
         # could find the number by using the length of model_type_files but it could fail if a model is sent from
         # one user to another
-        model_numbers = [int(re.search(r"_model(\d+)\.pt", f).group(1)) for f in model_type_files]
+        model_numbers = [int(re.search(r"_model(\d+)", f).group(1)) for f in model_type_files]
         return max(model_numbers) + 1
 
 

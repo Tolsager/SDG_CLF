@@ -2,94 +2,100 @@ import argparse
 import dataclasses
 import os
 
-import torch
+import pytorch_lightning as pl
 
-import wandb
-from api_key import key
+import api_key
+from sdg_clf import base
 from sdg_clf import dataset_utils
 from sdg_clf import modelling
 from sdg_clf import training
 from sdg_clf import utils
 
 
-@dataclasses.dataclass
-class TrainingParameters:
-    learning_rate: float = 3e-5
-    batch_size: int = 32
-    epochs: int = 2
-    weight_decay: float = 1e-2
+def get_save_dirpath(model_type: str):
+    return os.path.join("finetuned_models", os.path.dirname(model_type))
+
+
+def get_save_filename(model_type: str):
+    model_number = modelling.get_next_model_number(model_type)
+    save_filename = os.path.basename(model_type) + f"_model{model_number}"
+    return save_filename
 
 
 def main(
-        call_tqdm: bool = True,
+        debug: bool = False,
         seed: int = 0,
         model_type: str = "roberta-base",
-        log: bool = True,
-        save_model: bool = True,
-        training_parameters: TrainingParameters = TrainingParameters(),
+        hparams: base.HParams = base.HParams(),
         tags: list = None,
         notes: str = "Evaluating baseline model",
 ):
-    """main() completes multi_label learning loop for one ROBERTA model using one model.
-    Performance metrics and hyperparameters are stored using weights and biases log and config respectively.
-
+    """
+    Train a model on the Twitter dataset.
     Args:
-        batch_size (int, optional): How many samples per batch to load in the Dataloader. Defaults to 16.
-        epochs (int, optional): Epochs for trainer. Defaults to 2.
-        multi_label (bool, optional): Set to true if problem is a multi-label problem; if false problem is a multi-class label. Defaults to False.
-        call_tqdm (bool, optional): Whether the training process is verbosely displayed in the console. Defaults to True.
-        sample_data (bool, optional): Set to True for debugging purposes on a smaller data subset. Defaults to False.
-        metrics (dict, optional): Specification of metrics using torchmetrics. Defaults to None.
-        seed (int, optional): Random seed specification for controlled experiments. Defaults to 0.
-        model_type (str, optional): Specification of pre-trained huggingface model used. Defaults to "roberta-base".
-        log (bool, optional): Enables/disables logging via. Weights and Biases. Defaults to True.
-        save_model (bool, optional): Set to true if models should be saved during training. Defaults to False.
-        save_metric (str, optional): Determines the metric to compare between models for updating. Defaults to "accuracy".
+        debug: if True, run on a small subset of the data, log offline, and don't save
+        seed: seed used for the model
+        model_type: huggingface model type
+        hparams: an instance of the HParams class
+        tags: tags to log to wandb
+        notes: notes to log to wandb
+
+    Returns:
+        None
+
     """
     tags = [model_type] + tags if tags is not None else [model_type]
-    if not log:
-        os.environ["WANDB_MODE"] = "offline"
     # Setup W and B project log
-    os.environ["WANDB_API_KEY"] = key
-    run = wandb.init(project="sdg_clf", config=dataclasses.asdict(training_parameters), tags=tags, notes=notes)
-    if not log:
-        save_file_name = "model"
-    else:
-        save_file_name = run.name
+    os.environ["WANDB_API_KEY"] = api_key.key
 
-    # Setup correct directory and seed
-    os.chdir(os.path.dirname(__file__))
     utils.seed_everything(seed)
     model = modelling.load_model(model_type=model_type)
 
-    # Set loss criterion for trainer
-    criterion = torch.nn.BCEWithLogitsLoss()
+    dl_train = dataset_utils.get_dataloader("twitter", model_type, "train", batch_size=hparams.batch_size)
+    dl_val = dataset_utils.get_dataloader("twitter", model_type, "val", batch_size=hparams.batch_size)
 
-    dl_train = dataset_utils.get_dataloader("twitter", model_type, "train")
-    dl_val = dataset_utils.get_dataloader("twitter", model_type, "val")
+    # set up model checkpoint callback
+    save_dirpath = get_save_dirpath(model_type)
+    save_filename = get_save_filename(model_type)
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=save_dirpath, filename=save_filename,
+                                                       monitor="val_micro_f1", mode="max",
+                                                       save_top_k=1 if not debug else 0)
+    logger = pl.loggers.wandb.WandbLogger(project="sdg_clf", tags=tags, name=save_filename, notes=notes,
+                                          offline=debug)
+    logger.log_hyperparams(dataclasses.asdict(hparams) | {"save_filename": save_filename})
+    callbacks = [checkpoint_callback]
 
-    # get metrics
-    metrics = utils.get_metrics()
-    trainer = training.SDGTrainer(
-        model=model,
-        criterion=criterion,
-        call_tqdm=call_tqdm,
-        gpu_index=0,
-        metrics=metrics,
-        log=log,
-        save_file_name=save_file_name,
-        save_model=save_model,
-        save_metric="f1",
-        hypers=dataclasses.asdict(training_parameters),
-    )
-    trainer.train(dl_train, dl_val)
+    if debug:
+        trainer = pl.Trainer(
+            accelerator="gpu",
+            devices=1,
+            precision=16,
+            limit_train_batches=2,
+            limit_val_batches=2,
+            max_epochs=1,
+            callbacks=callbacks,
+            logger=logger,
+        )
+    else:
+        trainer = pl.Trainer(
+            accelerator="gpu",
+            devices=1,
+            precision=16,
+            limit_train_batches=hparams.frac,
+            max_epochs=hparams.max_epochs,
+            callbacks=callbacks,
+            logger=logger,
+        )
+    LitModel = training.LitSDG(model=model, hparams=hparams)
+
+    trainer.fit(LitModel, train_dataloaders=dl_train, val_dataloaders=dl_val)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--batch_size", help="number of batches sent to model", type=int, default=32)
-    parser.add_argument("-l", "--log", help="log results to weights and biases", action='store_true', default=False)
-    parser.add_argument("-s", "--save", help="save models during training", action="store_true", default=True)
+    parser.add_argument("-b", "--batch_size", help="number of batches sent to model", type=int, default=8)
+    parser.add_argument("-d", "--debug", help="debugging doesn't save and logs offline", action="store_true",
+                        default=False)
     parser.add_argument("-e", "--epochs", help="number of epochs to train model", type=int, default=2)
     parser.add_argument("-lr", "--learning_rate", help="learning rate", type=float, default=3e-5)
     parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
@@ -97,13 +103,15 @@ if __name__ == "__main__":
     parser.add_argument("-nt", "--notes", help="notes for a specific experiment run", type=str,
                         default="run with base parameters")
     parser.add_argument("-mt", "--model_type", help="specify model type to train", type=str, default="roberta-base")
+    parser.add_argument("-f", "--frac", help='fraction of training data to use for training', type=float, default=1.0)
+    parser.add_argument("-se", "--seed", help="seed for random number generator", type=int, default=0)
     args = parser.parse_args()
     main(
-        call_tqdm=True,
         model_type=args.model_type,
-        log=args.log,
-        save_model=args.save,
-        training_parameters=TrainingParameters(args.learning_rate, args.batch_size, args.epochs, args.weight_decay),
+        hparams=base.HParams(batch_size=args.batch_size, max_epochs=args.epochs, lr=args.learning_rate,
+                             frac=args.frac, ),
         tags=args.tags,
         notes=args.notes,
+        debug=args.debug,
+        seed=args.seed
     )

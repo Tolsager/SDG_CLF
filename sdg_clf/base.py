@@ -2,6 +2,7 @@ import torch
 import transformers
 from sdg_clf import utils, modelling
 import numpy as np
+from dataclasses import dataclass
 
 
 # transformer class with a model and a tokenizer
@@ -88,3 +89,12 @@ def get_transformer(model_type: str, model_weights: str) -> Transformer:
 
 def get_multiple_transformers(model_types: list[str], model_weights: list[str]) -> list[Transformer]:
     return [get_transformer(model_type, model_weight) for model_type, model_weight in zip(model_types, model_weights)]
+
+
+@dataclass
+class HParams:
+    lr: float = 3e-6
+    weight_decay: float = 1e-2
+    max_epochs: int = 10
+    batch_size: int = 32
+    frac: float = 1.0

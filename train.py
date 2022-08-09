@@ -23,49 +23,44 @@ def get_save_filename(model_type: str):
 
 
 def main(
-        debug: bool = False,
-        seed: int = 0,
-        model_type: str = "roberta-base",
-        hparams: base.HParams = base.HParams(),
-        tags: list = None,
-        notes: str = "Evaluating baseline model",
+        experiment_params: base.ExperimentParams,
+        hparams: base.HParams,
 ):
     """
     Train a model on the Twitter dataset.
     Args:
-        debug: if True, run on a small subset of the data, log offline, and don't save
-        seed: seed used for the model
-        model_type: huggingface model type
+        experiment_params: parameters for the experiment
         hparams: an instance of the HParams class
-        tags: tags to log to wandb
-        notes: notes to log to wandb
 
     Returns:
         None
 
     """
-    tags = [model_type] + tags if tags is not None else [model_type]
+    tags = [experiment_params.model_type] + experiment_params.tags if experiment_params.tags is not None else [
+        experiment_params.model_type]
     # Setup W and B project log
     os.environ["WANDB_API_KEY"] = api_key.key
 
-    utils.seed_everything(seed)
-    model = modelling.load_model(model_type=model_type)
+    utils.seed_everything(experiment_params.seed)
+    model = modelling.load_model(model_type=experiment_params.model_type)
 
-    dl_train = dataset_utils.get_dataloader("twitter", model_type, "train", batch_size=hparams.batch_size)
-    dl_val = dataset_utils.get_dataloader("twitter", model_type, "val", batch_size=hparams.batch_size)
+    dl_train = dataset_utils.get_dataloader("twitter", experiment_params.model_type, "train",
+                                            batch_size=hparams.batch_size)
+    dl_val = dataset_utils.get_dataloader("twitter", experiment_params.model_type, "val", batch_size=hparams.batch_size)
 
     # set up model checkpoint callback
-    save_dirpath = get_save_dirpath(model_type)
-    save_filename = get_save_filename(model_type)
+    save_dirpath = get_save_dirpath(experiment_params.model_type)
+    save_filename = get_save_filename(experiment_params.model_type)
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=save_dirpath, filename=save_filename,
                                                        monitor="val_micro_f1", mode="max",
-                                                       save_top_k=1 if not debug else 0)
-    logger = pl.loggers.wandb.WandbLogger(project="sdg_clf", tags=tags, name=save_filename, notes=notes,
-                                          offline=debug)
+                                                       save_top_k=1 if not experiment_params.debug else 0)
+    logger = pl.loggers.wandb.WandbLogger(project="sdg_clf", tags=tags, name=save_filename,
+                                          notes=experiment_params.notes,
+                                          offline=experiment_params.debug)
     logger.log_hyperparams(dataclasses.asdict(hparams) | {"save_filename": save_filename})
     callbacks = [checkpoint_callback]
 
-    if debug:
+    if experiment_params.debug:
         trainer = pl.Trainer(
             accelerator="gpu",
             devices=1,
@@ -88,7 +83,10 @@ def main(
         )
     LitModel = training.LitSDG(model=model, hparams=hparams)
 
-    trainer.fit(LitModel, train_dataloaders=dl_train, val_dataloaders=dl_val)
+    if experiment_params.ckpt_path is not None:
+        trainer.fit(LitModel, dl_train, dl_val, ckpt_path=experiment_params.ckpt_path)
+    else:
+        trainer.fit(LitModel, train_dataloaders=dl_train, val_dataloaders=dl_val)
 
 
 if __name__ == "__main__":
@@ -105,13 +103,11 @@ if __name__ == "__main__":
     parser.add_argument("-mt", "--model_type", help="specify model type to train", type=str, default="roberta-base")
     parser.add_argument("-f", "--frac", help='fraction of training data to use for training', type=float, default=1.0)
     parser.add_argument("-se", "--seed", help="seed for random number generator", type=int, default=0)
+    parser.add_argument("-ck", "--ckpt_path", help="path to checkpoint to load", type=str, default=None)
     args = parser.parse_args()
     main(
-        model_type=args.model_type,
         hparams=base.HParams(batch_size=args.batch_size, max_epochs=args.epochs, lr=args.learning_rate,
                              frac=args.frac, ),
-        tags=args.tags,
-        notes=args.notes,
-        debug=args.debug,
-        seed=args.seed
+        experiment_params=base.ExperimentParams(seed=args.seed, debug=args.debug, tags=args.tags,
+                                                model_type=args.model_type, notes=args.notes, ckpt_path=args.ckpt_path),
     )

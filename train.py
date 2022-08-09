@@ -35,6 +35,8 @@ def main(
     """
     tags = [experiment_params.model_type] + experiment_params.tags if experiment_params.tags is not None else [
         experiment_params.model_type]
+    if experiment_params.ckpt_path is not None:
+        experiment_params.notes = f"Resuming training from {experiment_params.ckpt_path}" + experiment_params.notes + "\n"
     # Setup W and B project log
     os.environ["WANDB_API_KEY"] = api_key.key
 
@@ -97,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument("-wd", "--weight_decay", help="optimizer weight decay", type=float, default=1e-2)
     parser.add_argument("-t", "--tags", help="tags for experiment run", nargs="+", default=None)
     parser.add_argument("-nt", "--notes", help="notes for a specific experiment run", type=str,
-                        default="run with base parameters")
+                        default="")
     parser.add_argument("-mt", "--model_type", help="specify model type to train", type=str, default="roberta-base")
     parser.add_argument("-f", "--frac", help='fraction of training data to use for training', type=float, default=1.0)
     parser.add_argument("-se", "--seed", help="seed for random number generator", type=int, default=0)

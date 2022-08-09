@@ -1,15 +1,12 @@
 import argparse
 import dataclasses
+import datetime
 import os
 
 import pytorch_lightning as pl
 
 import api_key
-from sdg_clf import base
-from sdg_clf import dataset_utils
-from sdg_clf import modelling
-from sdg_clf import training
-from sdg_clf import utils
+from sdg_clf import base, dataset_utils, modelling, training, utils
 
 
 def get_save_dirpath(model_type: str):
@@ -50,7 +47,8 @@ def main(
 
     # set up model checkpoint callback
     save_dirpath = get_save_dirpath(experiment_params.model_type)
-    save_filename = get_save_filename(experiment_params.model_type)
+    save_filename = get_save_filename(
+        experiment_params.model_type + "_" + datetime.datetime.now().strftime("%d%m%H%M%S"))
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=save_dirpath, filename=save_filename,
                                                        monitor="val_micro_f1", mode="max",
                                                        save_top_k=1 if not experiment_params.debug else 0)

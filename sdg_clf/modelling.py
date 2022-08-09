@@ -1,4 +1,5 @@
 import os
+import pytorch_lightning as pl
 import re
 
 import torch
@@ -71,3 +72,15 @@ def get_model_types(model_weights: list[str]) -> list[str]:
 
     """
     return [w.split("_")[0] for w in model_weights]
+
+
+def optimize_model_for_inference(model: pl.LightningModule, save_filename: str) -> None:
+    """
+    Optimize the model's inference speed by converting it to ONNX.
+    Args:
+        model: model to optimize
+        save_filename: name of the file to save the model to.
+    """
+    # optimize model
+    input_sample = (torch.randn((1, 260)), torch.randn((1, 260)))
+    model.to_onnx(save_filename, input_sample, export_params=True)

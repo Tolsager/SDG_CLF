@@ -141,8 +141,6 @@ def test_get_processed_df():
             print(text)
 
 
-
-
 def test_get_labels_tensor():
     df = pd.read_csv("data/processed/scopus/test.csv")
     labels = dataset_utils.get_labels_tensor(df)

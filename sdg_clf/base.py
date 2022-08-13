@@ -97,7 +97,8 @@ class HParams:
     weight_decay: float = 1e-2
     max_epochs: int = 10
     batch_size: int = 32
-    frac: float = 1.0
+    frac_train: float = 1.0
+    frac_val: float = 1.0
 
 
 @dataclasses.dataclass

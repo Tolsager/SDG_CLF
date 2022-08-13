@@ -13,11 +13,6 @@ def get_save_dirpath(model_type: str):
     return os.path.join("finetuned_models", os.path.dirname(model_type))
 
 
-def get_save_filename(model_type: str):
-    model_number = modelling.get_next_model_number(model_type)
-    save_filename = os.path.basename(model_type) + f"_model{model_number}"
-    return save_filename
-
 
 def main(
         experiment_params: base.ExperimentParams,
@@ -49,8 +44,7 @@ def main(
 
     # set up model checkpoint callback
     save_dirpath = get_save_dirpath(experiment_params.model_type)
-    save_filename = get_save_filename(
-        experiment_params.model_type + "_" + datetime.datetime.now().strftime("%d%m%H%M%S"))
+    save_filename = f"{experiment_params.model_type}_{datetime.datetime.now().strftime('%d%m%H%M%S')}"
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=save_dirpath, filename=save_filename,
                                                        monitor="val_micro_f1", mode="max",
                                                        save_top_k=1 if not experiment_params.debug else 0)
@@ -76,7 +70,8 @@ def main(
             accelerator="gpu",
             devices=1,
             precision=16,
-            limit_train_batches=hparams.frac,
+            limit_train_batches=hparams.frac_train,
+            limit_val_batches=hparams.frac_val,
             max_epochs=hparams.max_epochs,
             callbacks=callbacks,
             logger=logger,
@@ -101,13 +96,16 @@ if __name__ == "__main__":
     parser.add_argument("-nt", "--notes", help="notes for a specific experiment run", type=str,
                         default="")
     parser.add_argument("-mt", "--model_type", help="specify model type to train", type=str, default="roberta-base")
-    parser.add_argument("-f", "--frac", help='fraction of training data to use for training', type=float, default=1.0)
+    parser.add_argument("-ft", "--frac_train", help='fraction of training data to use for training', type=float,
+                        default=1.0)
+    parser.add_argument("-fv", "--frac_val", help='fraction of training data to use for validation', type=float,
+                        default=1.0)
     parser.add_argument("-se", "--seed", help="seed for random number generator", type=int, default=0)
     parser.add_argument("-ck", "--ckpt_path", help="path to checkpoint to load", type=str, default=None)
     args = parser.parse_args()
     main(
         hparams=base.HParams(batch_size=args.batch_size, max_epochs=args.epochs, lr=args.learning_rate,
-                             frac=args.frac, ),
+                             frac_train=args.frac_train, frac_val=args.frac_val, weight_decay=args.weight_decay),
         experiment_params=base.ExperimentParams(seed=args.seed, debug=args.debug, tags=args.tags,
                                                 model_type=args.model_type, notes=args.notes, ckpt_path=args.ckpt_path),
     )

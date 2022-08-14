@@ -1,4 +1,5 @@
 import torch
+import torchmetrics
 import transformers
 from sdg_clf import utils, modelling
 import numpy as np
@@ -109,3 +110,32 @@ class ExperimentParams:
     tags: list[str] = None
     debug: bool = False
     notes: str = None
+
+
+class Metrics:
+    def __init__(self):
+        self.metrics = {
+            "exact_match_ratio": torchmetrics.Accuracy(num_classes=17, subset_accuracy=True, multiclass=False),
+            "precision_micro": torchmetrics.Precision(num_classes=17, multiclass=False, average="micro"),
+            "recall_micro": torchmetrics.Recall(num_classes=17, multiclass=False, average="micro"),
+            "f1_micro": torchmetrics.F1Score(num_classes=17, multiclass=False, average="micro"),
+            "precision_macro": torchmetrics.Precision(num_classes=17, multiclass=False, average="macro"),
+            "recall_macro": torchmetrics.Recall(num_classes=17, multiclass=False, average="macro"),
+            "f1_macro": torchmetrics.F1Score(num_classes=17, multiclass=False, average="macro"),
+        }
+        self.values = None
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        for metric in self.metrics.values():
+            metric.update(preds, target)
+
+    def compute(self):
+        values = {metric_name: metric.compute() for metric_name, metric in self.metrics.items()}
+        self.values = values
+
+    def print(self):
+        print("Metrics")
+        print("--------")
+        for metric_name, metric_value in self.values.items():
+            # print metric values with 4 decimal places
+            print(f"{metric_name}: {metric_value:.4f}")

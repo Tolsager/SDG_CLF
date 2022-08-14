@@ -2,29 +2,29 @@ import argparse
 import os
 import torch
 
-from sdg_clf import utils, evaluation, dataset_utils
+from sdg_clf import utils, evaluation, dataset_utils, base
 
 
 def main(dataset_name: str, split: str, model_weights: list[str] = None, model_types: list[str] = None,
          save_predictions: bool = True, overwrite: bool = False, threshold: float = 0.5):
     os.chdir(os.path.dirname(__file__))
 
-    predictions = evaluation.get_raw_predictions_sdg_clf(dataset_name, split, model_weights, save_predictions,
+    preds = evaluation.get_raw_predictions_sdg_clf(dataset_name, split, model_weights, save_predictions,
                                                          overwrite)
     if len(model_weights) > 1:
-        predictions = predictions[0]
+        preds = preds[0]
     else:
-        predictions = evaluation.combine_multiple_predictions(predictions)
-    predictions = evaluation.threshold_multiple_predictions(predictions, threshold)
-    predictions = evaluation.predict_multiple_strategy_any(predictions)
+        preds = evaluation.combine_multiple_predictions(preds)
+    preds = evaluation.threshold_multiple_predictions(preds, threshold)
+    preds = evaluation.predict_multiple_strategy_any(preds)
     df = dataset_utils.get_processed_df(dataset_name, split)
-    labels = dataset_utils.get_labels_tensor(df)
+    target = dataset_utils.get_labels_tensor(df)
 
-    metrics = utils.get_metrics(threshold=threshold)
-
-    utils.update_metrics(metrics, {"label": labels, "prediction": predictions})
-    metrics_values = utils.compute_metrics(metrics)
-    utils.print_metrics(metrics_values)
+    # compute metrics
+    metrics = base.Metrics()
+    metrics.update(preds, target)
+    metrics.compute()
+    metrics.print_metrics()
 
 
 if __name__ == "__main__":

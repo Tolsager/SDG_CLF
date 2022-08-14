@@ -70,106 +70,6 @@ def prepare_long_text_input(input_ids: Union[list[int], torch.Tensor], tokenizer
     return {"input_ids": input_ids, "attention_mask": attention_mask}
 
 
-def update_metrics(metrics, step_outputs: dict):
-    """
-    Updates the metrics of the self.metrics dictionary based on outputs from the model
-
-    Args:
-        step_outputs (dict): Dictionary of metric outputs from the neural network
-    """
-    for metric in metrics.values():
-        metric["metric"].update(
-            target=step_outputs["label"], preds=step_outputs["prediction"]
-        )
-
-
-def compute_metrics(metrics):
-    """
-    Computes the metrics in the self.metric dictionary using the .compute() torchmetrics method
-
-    Returns:
-        Dictionary of metrics computed by torchmetrics
-    """
-    metric_values = {
-        k: v["metric"].compute().cpu() for k, v in metrics.items()
-    }
-    return metric_values
-
-
-def reset_metrics(metrics):
-    """
-    Resets the values of the self.metrics dictionary
-    """
-    for metric in metrics.values():
-        metric["metric"].reset()
-
-
-def set_metrics_to_device(metrics):
-    for k, v in metrics.items():
-        metrics[k]["metric"] = v["metric"].to("cuda")
-
-
-def get_metrics(threshold=0.5, num_classes=17):
-    metrics = {
-        "accuracy": {
-            "goal": "maximize",
-            "metric": torchmetrics.Accuracy(threshold=threshold, num_classes=num_classes, subset_accuracy=True,
-                                            multiclass=False),
-        },
-        "precision": {
-            "goal": "maximize",
-            "metric": torchmetrics.Precision(threshold=threshold, num_classes=num_classes,
-                                             multiclass=False),
-        },
-        "recall": {
-            "goal": "maximize",
-            "metric": torchmetrics.Recall(threshold=threshold, num_classes=num_classes, multiclass=False),
-        },
-        "f1": {
-            "goal": "maximize",
-            "metric": torchmetrics.F1Score(threshold=threshold, num_classes=num_classes, multiclass=False),
-        },
-    }
-    return metrics
-
-
-def get_metrics_pl():
-    metrics = {
-        "exact_match_ratio": torchmetrics.Accuracy(num_classes=17, subset_accuracy=True, multiclass=False),
-        "precision_micro": torchmetrics.Precision(num_classes=17, multiclass=False, average="micro"),
-        "recall_micro": torchmetrics.Recall(num_classes=17, multiclass=False, average="micro"),
-        "f1_micro": torchmetrics.F1Score(num_classes=17, multiclass=False, average="micro"),
-        "precision_macro": torchmetrics.Precision(num_classes=17, multiclass=False, average="macro"),
-        "recall_macro": torchmetrics.Recall(num_classes=17, multiclass=False, average="macro"),
-        "f1_macro": torchmetrics.F1Score(num_classes=17, multiclass=False, average="macro"),
-    }
-    return metrics
-
-
-def set_metrics_pl_to_device(metrics: dict[str, torchmetrics.Metric], device: str):
-    for metric in metrics.values():
-        metric.to(device)
-
-
-def add_suffix_to_keys(dictionary: dict[str, Any], suffix: str) -> dict[str, Any]:
-    """
-    Adds suffix to all keys in dictionary
-
-    Args:
-        dictionary (dict[str, Any]): Dictionary to add suffix to
-        suffix (str): Suffix to add to all keys in dictionary
-
-    Returns:
-        Dictionary with all keys in dictionary with suffix added
-    """
-    return {k + suffix: v for k, v in dictionary.items()}
-
-
-def update_metrics_pl(metrics: dict[str, torchmetrics.Metric], preds: torch.Tensor, labels: torch.Tensor):
-    for metric in metrics.values():
-        metric(preds, labels)
-
-
 def print_metrics(metrics: dict[str, torch.Tensor]) -> None:
     print("Metrics")
     print("--------")
@@ -226,9 +126,12 @@ def move_to(obj: Union[torch.Tensor, dict, list], device: str):
 
 
 def get_prediction_paths(dataset_name: str, split: str, model_weights: list[str] = None, method: str = None,
+                         idx_start: int = None, idx_end: int = None
                          ) -> Union[list[str], str]:
     if method == "osdg_stable" or method == "osdg_new" or method == "aurora":
         prediction_paths = f"predictions/{dataset_name}/{split}/{method}.pkl"
+        if idx_start is not None and idx_end is not None:
+            prediction_paths = f"predictions/{dataset_name}/{split}/{method}_{idx_start}-{idx_end}.pkl"
     else:
         # remove potential file extension
         model_weights = [os.path.splitext(w)[0] for w in model_weights]

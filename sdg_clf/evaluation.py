@@ -1,4 +1,5 @@
 import ast
+import tqdm
 import numpy as np
 import numpy.typing as npt
 import time
@@ -55,7 +56,7 @@ def process_osdg_prediction_stable_api(osdg_prediction: str) -> torch.Tensor:
     return prediction_tensor
 
 
-def predict_sample_osdg_stable_api(text: str) -> Union[torch.Tensor, None]:
+def predict_sample_osdg_stable_api(text: str) -> torch.Tensor:
     """
     Predict the SDG classification for a given text using the OSDG server.
     Args:
@@ -66,34 +67,34 @@ def predict_sample_osdg_stable_api(text: str) -> Union[torch.Tensor, None]:
 
     """
     osdg_prediction = request_osdg_prediction_stable_api(text)
-    if "ERROR" in osdg_prediction:
+    if "ERROR" in osdg_prediction or osdg_prediction == '"The query you entered does not contain any valid tokens or is shorter than 20 words. Try adjusting the query."\n':
         print("OSDG unable to predict")
         print("The following error message was received:")
         print(f"\t {osdg_prediction}")
         print()
-        return None
+        return torch.zeros(17)
     else:
         prediction_tensor = process_osdg_prediction_stable_api(osdg_prediction)
 
     return prediction_tensor
 
 
-def predict_multiple_samples_osdg_stable_api(samples: list[str]) -> list[torch.Tensor]:
+def predict_multiple_samples_osdg_stable_api(samples: list[str]) -> torch.Tensor:
     """
     Predict on multiple samples
 
     Args:
         samples: texts to be predicted on
-        ip: ip address of the server
 
     Returns:
         predictions
 
     """
     predictions = []
-    for sample in samples:
+    for sample in tqdm.tqdm(samples):
         prediction = predict_sample_osdg_stable_api(sample)
         predictions.append(prediction)
+    predictions = torch.stack(predictions, dim=0)
     return predictions
 
 
@@ -129,7 +130,7 @@ def retrieve_raw_osdg_predictions_new_api(task_ids: list[str]) -> list[list[list
     """
     url = new_ip + "retrieve-results"
     predictions = []
-    for task_id in task_ids:
+    for task_id in tqdm.tqdm(task_ids):
         while True:
             data = {"task_id": task_id, "token": "dtAAymjvxzKXyTNqNY2z"}
             result = requests.post(url, data=data)
@@ -144,13 +145,13 @@ def retrieve_raw_osdg_predictions_new_api(task_ids: list[str]) -> list[list[list
 
 def process_raw_osdg_predictions_new_api(raw_predictions: list[list[list[str, int]]]) -> torch.Tensor:
     """
-    Processes the raw predictions from the OSDG server into a binary numpy array
+    Processes the raw predictions from the OSDG server into a tensor
     of shape (n, 17) with n being the number of samples
     Args:
         raw_predictions: the predictions from the server
 
     Returns:
-        binary np array
+        predictions
 
     """
     predictions = []
@@ -238,7 +239,7 @@ def get_raw_predictions_sdg_clf(dataset_name: str, split: str, model_weights: li
 
 
 def get_predictions_other(method: str, dataset_name: str, split: str, save_predictions: bool = True,
-                          overwrite: bool = False) -> list[torch.Tensor]:
+                          overwrite: bool = False, idx_start: int = None, idx_end: int = None) -> torch.Tensor:
     """
     Get the predictions for the other methods
 
@@ -248,18 +249,23 @@ def get_predictions_other(method: str, dataset_name: str, split: str, save_predi
         split: the split to use
         save_predictions: whether to save the predictions
         overwrite: whether to overwrite the predictions if they already exist
+        idx_start: index of the first sample to use
+        idx_end: index of the last sample to use
     """
-    predictions_path = utils.get_prediction_paths(method=method, dataset_name=dataset_name, split=split)
+    predictions_path = utils.get_prediction_paths(method=method, dataset_name=dataset_name, split=split,
+                                                  idx_start=idx_start, idx_end=idx_end)
     if not overwrite:
         predictions = utils.load_predictions(predictions_path)
     else:
         predictions = None
 
-    # load dataframe
-    df = dataset_utils.get_processed_df(dataset_name, split)
-
     # create predictions if any are missing
     if predictions is None:
+        # load dataframe
+        df = dataset_utils.get_processed_df(dataset_name, split)
+
+        if idx_start is not None and idx_end is not None:
+            df = df.iloc[idx_start:idx_end]
         # get the text column of the df as a list of strings
         samples = df["text"].tolist()
         if method == "osdg_stable":

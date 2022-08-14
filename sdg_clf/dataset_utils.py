@@ -61,6 +61,9 @@ def process_twitter_df() -> pd.DataFrame:
     # remove rows with nans in any column
     df = df.dropna(axis=0, how="any")
 
+    # remove labels from text
+    df["text"] = df["text"].str.replace(r"#(?:sdg)s?(\s+)?(\d+)?", "")
+
     # remove extra whitespace in the "text" column
     df["text"] = df["text"].str.replace(r"\s+", " ")
 

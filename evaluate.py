@@ -24,17 +24,17 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
     metrics = base.Metrics()
     metrics.update(preds, target)
     metrics.compute()
-    metrics.print_metrics()
+    metrics.print()
 
 
 if __name__ == "__main__":
     # set up argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_name", type=str, default="scopus")
-    parser.add_argument("--split", type=str, default="val")
+    parser.add_argument("--split", type=str, default="test")
     parser.add_argument("--model_weights", type=str, nargs="+")
     parser.add_argument("--model_types", type=str, nargs="+")
-    parser.add_argument("--save_predictions", action="store_true")
+    parser.add_argument("--save_predictions", action="store_true", default=True)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--threshold", type=float, default=0.5)
     args = parser.parse_args()

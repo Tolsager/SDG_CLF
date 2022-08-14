@@ -36,7 +36,10 @@ def load_model(model_type: str = None, weights_name: str = None) -> AutoModelFor
     # load weights if given
     if weights_name is not None:
         path_weights = os.path.join("finetuned_models", weights_name)
-        model.load_state_dict(torch.load(path_weights, map_location=device))
+        state_dict = torch.load(path_weights, map_location=device)["state_dict"]
+        # remove "model." prefix from state_dict keys
+        state_dict = {k[6:]: v for k, v in state_dict.items()}
+        model.load_state_dict(state_dict)
     return model
 
 

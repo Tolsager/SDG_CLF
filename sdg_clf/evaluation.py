@@ -295,16 +295,16 @@ def get_predictions_other(method: str, dataset_name: str, split: str, save_predi
     return predictions
 
 
-def get_optimal_threshold(predictions: list[torch.Tensor], labels: torch.Tensor) -> tuple[float]:
+def get_optimal_threshold(predictions: list[torch.Tensor], labels: torch.Tensor) -> tuple[float, float]:
     f1 = torchmetrics.F1Score(num_classes=17, multiclass=False)
     # try 100 thresholds from 0.0 to 1.0
     thresholds = torch.linspace(0.0, 1.0, 100)
     best_f1 = 0.0
+    best_threshold = 0.5
     for threshold in thresholds:
         f1.reset()
         thresholded_predictions = threshold_multiple_predictions(predictions, threshold)
         any_predictions = predict_multiple_strategy_any(thresholded_predictions)
-        any_predictions = torch.concat(any_predictions, dim=0)
         f1.update(any_predictions, labels)
         f1_score = f1.compute()
         if f1_score > best_f1:

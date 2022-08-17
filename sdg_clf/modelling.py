@@ -87,3 +87,22 @@ def optimize_model_for_inference(model: pl.LightningModule, save_filename: str) 
     # optimize model
     input_sample = (torch.randn((1, 260)), torch.randn((1, 260)))
     model.to_onnx(save_filename, input_sample, export_params=True)
+
+
+def get_model_weights() -> list[str]:
+    """
+    Get the model weights from the "finetuned_models" folder.
+    Returns:
+        list of model weights.
+    """
+    model_weights = []
+    for dirpath, dirnames, filenames in os.walk("finetuned_models"):
+        # all ".ckpt" files
+        ckpt_files = [os.path.join(dirpath, f) for f in filenames if f.endswith(".ckpt")]
+        # remove "finetuned_models/" prefix from ckpt_files
+        ckpt_files = [os.path.relpath(f, "finetuned_models") for f in ckpt_files]
+        model_weights.extend(ckpt_files)
+
+    model_weights.sort()
+    return model_weights
+

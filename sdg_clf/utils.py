@@ -1,8 +1,10 @@
 import os
+import itertools
 import numpy.typing as npt
 import pickle
 import random
 from typing import Union, Any
+from collections.abc import Iterable
 
 import numpy as np
 import torch
@@ -194,3 +196,7 @@ def log_metrics(metrics: dict[str, torch.Tensor], method: str, dataset_name: str
             f.write(f"{metric_name}: {metric_value:.4f}\n")
         f.write("\n")
         f.write("\n")
+
+def get_powerset(iterable: Iterable):
+    s = list(iterable)
+    return itertools.chain.from_iterable(itertools.combinations(s, r) for r in range(1, len(s) + 1))

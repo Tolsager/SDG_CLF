@@ -11,7 +11,7 @@ tensorflow==2.9.1
 torch==1.11.0
 torchmetrics==0.8.0
 tqdm==4.63.1
-transformers==4.17.0
+transformers==4.21.1
 pytest==7.1.2
 wandb==0.12.21
 sentencepiece==0.1.96

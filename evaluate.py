@@ -25,6 +25,7 @@ def main(dataset_name: str, split: str, model_weights: list[str] = None, model_t
     metrics.update(preds, target)
     metrics.compute()
     metrics.print()
+    utils.log_metrics(metrics.values, "sdg_clf", dataset_name, split, model_weights)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import argparse
 
 import torch
 
-from sdg_clf import evaluation, dataset_utils, base
+from sdg_clf import evaluation, dataset_utils, base, utils
 
 
 def main(method: str, dataset_name: str, split: str, save_predictions: bool = True, overwrite: bool = False,
@@ -28,7 +28,6 @@ def main(method: str, dataset_name: str, split: str, save_predictions: bool = Tr
         preds = torch.zeros((len(df), 17))
         # SDG4 is the most common SDG in the Twitter dataset, so we set it to 1
         preds[:, 3] = 1
-
     else:
         preds = evaluation.get_predictions_other(method, dataset_name, split, save_predictions, overwrite, idx_start,
                                                  idx_end)
@@ -42,6 +41,7 @@ def main(method: str, dataset_name: str, split: str, save_predictions: bool = Tr
     metrics.update(preds, target)
     metrics.compute()
     metrics.print()
+    utils.log_metrics(metrics.values, method, dataset_name, split)
 
 
 if __name__ == "__main__":

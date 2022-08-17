@@ -172,3 +172,25 @@ def print_prediction(prediction: npt.NDArray) -> None:
         for i in range(17):
             if prediction[i] == 1:
                 print(f"    SDG {i + 1}: {sdg_dict[i + 1]}")
+
+
+def log_metrics(metrics: dict[str, torch.Tensor], method: str, dataset_name: str, split: str,
+                model_weights: list[str] = None) -> None:
+    if method == "sdg_clf":
+        save_path = "experiments.txt"
+    else:
+        save_path = "experiments_other.txt"
+
+    with open(save_path, "a+") as f:
+        f.write(f"Data: {dataset_name} {split}\n")
+        if method != "sdg_clf":
+            f.write(f"Method: {method}\n")
+        if model_weights is not None:
+            f.write(f"Model weights: {str(model_weights)[1:-1]}\n")
+
+        f.write("Metrics\n")
+        f.write("--------\n")
+        for metric_name, metric_value in metrics.items():
+            f.write(f"{metric_name}: {metric_value:.4f}\n")
+        f.write("\n")
+        f.write("\n")

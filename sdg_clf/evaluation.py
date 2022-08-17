@@ -1,15 +1,13 @@
 import ast
-import tqdm
-import numpy as np
-import numpy.typing as npt
-import time
 import json
 import os.path
-from typing import Union
+import sys
+import time
 
 import requests
 import torch
 import torchmetrics
+import tqdm
 
 from sdg_clf import base, utils, dataset_utils, aurora_mbert, modelling
 
@@ -131,15 +129,15 @@ def retrieve_raw_osdg_predictions_new_api(task_ids: list[str]) -> list[list[list
     url = new_ip + "retrieve-results"
     predictions = []
     for task_id in tqdm.tqdm(task_ids):
-        while True:
-            data = {"task_id": task_id, "token": "dtAAymjvxzKXyTNqNY2z"}
-            result = requests.post(url, data=data)
-            res = json.loads(result.text)
-            if res["status"] == "Error: Could not extract text":
-                time.sleep(2)
-            else:
-                predictions.append(res["document_sdg_labels"])
-                break
+        data = {"task_id": task_id, "token": "dtAAymjvxzKXyTNqNY2z"}
+        result = requests.post(url, data=data)
+        res = json.loads(result.text)
+        if res["status"] == 'Error: Could not extract text':
+            predictions.append([])
+        elif res["status"] == "Completed":
+            predictions.append(res["document_sdg_labels"])
+        else:
+            print(f"Error: {res['status']}")
     return predictions
 
 
@@ -157,10 +155,13 @@ def process_raw_osdg_predictions_new_api(raw_predictions: list[list[list[str, in
     predictions = []
     for pred in raw_predictions:
         new_pred = torch.zeros(17)
-        for sdg in pred:
-            sdg_id = int(sdg[0][4:]) - 1
-            new_pred[sdg_id] = 1
-        predictions.append(new_pred)
+        if len(pred) == 0:
+            predictions.append(new_pred)
+        else:
+            for sdg in pred:
+                sdg_id = int(sdg[0][4:]) - 1
+                new_pred[sdg_id] = 1
+            predictions.append(new_pred)
     # stack the predictions
     predictions = torch.stack(predictions, dim=0)
     return predictions
@@ -271,7 +272,21 @@ def get_predictions_other(method: str, dataset_name: str, split: str, save_predi
         if method == "osdg_stable":
             predictions = predict_multiple_samples_osdg_stable_api(samples)
         elif method == "osdg_new":
-            predictions = predict_multiple_samples_osdg_new_api(samples)
+            # get the dir of predictions_path
+            predictions_dir = os.path.dirname(predictions_path)
+            # check if the task_ids file exists
+            task_ids_path = os.path.join(predictions_dir, "task_ids.pkl")
+            if os.path.exists(task_ids_path):
+                task_ids = utils.load_pickle(task_ids_path)
+                raw_predictions = retrieve_raw_osdg_predictions_new_api(task_ids)
+                predictions = process_raw_osdg_predictions_new_api(raw_predictions)
+            else:
+                task_ids = request_osdg_predictions_new_api(samples)
+                utils.save_pickle(task_ids_path, task_ids)
+                print(f"Saved task_ids to {task_ids_path}. Please run again later to retrieve the predictions")
+                print("Exiting...")
+                sys.exit()
+
         elif method == "aurora":
             predictions = predict_multiple_samples_aurora(samples)
 

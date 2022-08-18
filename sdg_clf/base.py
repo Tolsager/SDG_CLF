@@ -19,7 +19,7 @@ class Transformer:
         input_ids = input_ids["input_ids"]
         input_ids = [input_ids[x:x + self.max_length - 2] for x in range(0, len(input_ids), self.max_length)]
         # add bos and eos tokens to each input_ids
-        input_ids = [[self.tokenizer.cls_token_id] + x + [self.tokenizer.eos_token_id] for x in input_ids]
+        input_ids = [[self.tokenizer.cls_token_id] + x + [self.tokenizer.sep_token_id] for x in input_ids]
         # pad input_ids to max_length
         input_ids[-1] = input_ids[-1] + [self.tokenizer.pad_token_id] * (self.max_length - len(input_ids[-1]))
         return torch.tensor(input_ids)

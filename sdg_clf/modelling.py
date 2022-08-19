@@ -116,3 +116,4 @@ def create_model_for_provider(model_path: str, provider: str = "CPUExecutionProv
     session = onnxruntime.InferenceSession(model_path, options, providers=[provider])
     session.disable_fallback()
     return session
+

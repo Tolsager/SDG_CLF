@@ -1,4 +1,5 @@
 import os
+import onnxruntime
 import pytorch_lightning as pl
 import re
 
@@ -7,7 +8,7 @@ import transformers
 from transformers import AutoModelForSequenceClassification
 
 
-def load_model(model_type: str = None, weights_name: str = None) -> AutoModelForSequenceClassification:
+def load_model(model_type: str = None, weights_name: str = None, device: str = None) -> AutoModelForSequenceClassification:
     """
     Load a pretrained or fine-tuned model.
     Args:
@@ -30,7 +31,8 @@ def load_model(model_type: str = None, weights_name: str = None) -> AutoModelFor
     else:
         model = transformers.AutoModelForSequenceClassification.from_pretrained(model_type, num_labels=17)
         model.save_pretrained(f"pretrained_models/{model_type}")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
     # load weights if given
@@ -106,3 +108,11 @@ def get_model_weights() -> list[str]:
     model_weights.sort()
     return model_weights
 
+
+def create_model_for_provider(model_path: str, provider: str = "CPUExecutionProvider"):
+    options = onnxruntime.SessionOptions()
+    options.intra_op_num_threads = 1
+    options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+    session = onnxruntime.InferenceSession(model_path, options, providers=[provider])
+    session.disable_fallback()
+    return session

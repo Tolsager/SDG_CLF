@@ -263,9 +263,10 @@ def create_osdg_processed_dfs():
     # fractions = [1]
     # split_names = ["test"]
     # return create_processed_dfs("osdg", fractions, split_names)
-    fractions = [0.5, 0.5]
-    split_names = ["val", "test"]
-    return create_processed_dfs("osdg", fractions, split_names)
+    df = process_df("osdg")
+    df_test = df.iloc[:3000]
+    df_val = df.iloc[3000:]
+    return {"val": df_val, "test": df_test}
 
 
 def save_processed_dfs(dataset_name: str, split_dfs: dict[str, pd.DataFrame]) -> None:

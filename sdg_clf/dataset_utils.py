@@ -250,14 +250,21 @@ def create_scopus_processed_dfs():
 
 
 def create_twitter_processed_dfs():
-    fractions = [0.8, 0.1, 0.1]
-    split_names = ["train", "val", "test"]
-    return create_processed_dfs("twitter", fractions, split_names)
+    # fractions = [0.8, 0.1, 0.1]
+    # split_names = ["train", "val", "test"]
+    df = process_df("twitter")
+    df_val = df.iloc[:3000]
+    df_test = df.iloc[3000:6000]
+    df_train = df.iloc[6000:]
+    return {"train": df_train, "val": df_val, "test": df_test}
 
 
 def create_osdg_processed_dfs():
-    fractions = [1]
-    split_names = ["test"]
+    # fractions = [1]
+    # split_names = ["test"]
+    # return create_processed_dfs("osdg", fractions, split_names)
+    fractions = [0.5, 0.5]
+    split_names = ["val", "test"]
     return create_processed_dfs("osdg", fractions, split_names)
 
 

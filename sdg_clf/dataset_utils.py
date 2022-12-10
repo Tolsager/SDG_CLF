@@ -380,13 +380,14 @@ def process_dataset(dataset: datasets.Dataset, tokenizer: transformers.PreTraine
     return ds
 
 
-def get_processed_ds(dataset_name: str, model_type: str, split: str) -> datasets.Dataset:
+def get_processed_ds(dataset_name: str, model_type: str, split: str, save_ds: bool = False) -> datasets.Dataset:
     """
     Get the processed dataset.
     Args:
         dataset_name:  {twitter, scopus, osdg}
         model_type: a model from the Huggingface Hub with an AutoModelForSequenceClassification class
         split: data split to use
+        save_ds: whether to save the processed data set to disk
 
     Returns:
         dataset
@@ -406,12 +407,13 @@ def get_processed_ds(dataset_name: str, model_type: str, split: str) -> datasets
         # ds = datasets.Dataset.from_pandas(df)
         tokenizer = get_tokenizer(model_type)
         ds = process_dataset(ds, tokenizer)
-        ds.save_to_disk(ds_load_path)
+        if save_ds:
+            ds.save_to_disk(ds_load_path)
     return ds
 
 
-def get_dataloader(dataset_name: str, model_type: str, split: str, batch_size: int = 20):
-    ds = get_processed_ds(dataset_name, model_type, split)
+def get_dataloader(dataset_name: str, model_type: str, split: str, batch_size: int = 20, save_ds: bool = False):
+    ds = get_processed_ds(dataset_name, model_type, split, save_ds=save_ds)
     ds.set_format("pt")
     dl = torch.utils.data.DataLoader(ds, batch_size=batch_size)
     return dl
